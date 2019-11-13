@@ -1,0 +1,62 @@
+# This Makefile.am is in the public domain
+AM_CPPFLAGS = -I$(top_srcdir)/src/include
+
+plugindir = $(libdir)/taler
+
+if HAVE_POSTGRESQL
+if HAVE_GNUNETPQ
+plugin_LTLIBRARIES = \
+  libsync_plugin_db_postgres.la
+endif
+endif
+
+if USE_COVERAGE
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
+endif
+
+lib_LTLIBRARIES = \
+  libsyncdb.la
+
+libsyncdb_la_SOURCES = \
+  sync_db_plugin.c
+
+libsyncdb_la_LIBADD = \
+  -lgnunetpq \
+  -lpq \
+  -lgnunetutil
+libsyncdb_la_LDFLAGS = \
+   $(POSTGRESQL_LDFLAGS) \
+   -version-info 2:0:0 \
+   -no-undefined
+
+libsync_plugin_db_postgres_la_SOURCES = \
+  plugin_sync_postgres.c
+libsync_plugin_db_postgres_la_LIBADD = \
+  $(LTLIBINTL)
+libsync_plugin_db_postgres_la_LDFLAGS = \
+  $(TALER_PLUGIN_LDFLAGS) \
+  -lgnunetpq \
+  -lpq \
+  -ltalerpq \
+  -lgnunetutil $(XLIB)
+
+check_PROGRAMS = \
+ $(TESTS)
+
+test_sync_db_postgres_SOURCES = \
+  test_sync_db.c
+test_sync_db_postgres_LDFLAGS = \
+  $(top_builddir)/src/util/libsyncutil.la \
+  libsyncdb.la \
+  -lgnunetutil \
+  -lgnunetpq \
+  -ltalerutil \
+  -ltalerpq \
+  -luuid
+
+TESTS = \
+  test_sync_db-postgres
+
+EXTRA_DIST = \
+  test_sync_db_postgres.conf
