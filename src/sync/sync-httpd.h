@@ -137,6 +137,16 @@ extern int SH_sync_connection_close;
 extern struct SYNC_DatabasePlugin *db;
 
 /**
+ * Upload limit to the service, in megabytes.
+ */
+extern unsigned long long SH_upload_limit_mb;
+
+/**
+ * Annual fee for the backup account.
+ */
+extern struct TALER_Amount SH_annual_fee;
+
+/**
  * Kick MHD to run now, to be called after MHD_resume_connection().
  * Basically, we need to explicitly resume MHD's event loop whenever
  * we made progress serving a request.  This function re-schedules

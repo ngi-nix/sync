@@ -27,6 +27,7 @@
 #include "sync-httpd_mhd.h"
 #include "sync_database_lib.h"
 #include "sync-httpd_backup.h"
+#include "sync-httpd_terms.h"
 
 /**
  * Backlog for listen operation on unix-domain sockets.
@@ -42,6 +43,16 @@ static long long unsigned port;
  * Should a "Connection: close" header be added to each HTTP response?
  */
 int SH_sync_connection_close;
+
+/**
+ * Upload limit to the service, in megabytes.
+ */
+unsigned long long int SH_upload_limit_mb;
+
+/**
+ * Annual fee for the backup account.
+ */
+struct TALER_Amount SH_annual_fee;
 
 /**
  * Task running the HTTP server.
@@ -76,17 +87,17 @@ struct SYNC_DatabasePlugin *db;
 
 
 /**
- * Return GNUNET_YES if given a valid correlation ID and
- * GNUNET_NO otherwise.
+ * Return #GNUNET_YES if given a valid correlation ID and
+ * #GNUNET_NO otherwise.
  *
- * @returns GNUNET_YES iff given a valid correlation ID
+ * @returns #GNUNET_YES iff given a valid correlation ID
  */
 static int
 is_valid_correlation_id (const char *correlation_id)
 {
   if (strlen (correlation_id) >= 64)
     return GNUNET_NO;
-  for (int i = 0; i < strlen (correlation_id); i++)
+  for (size_t i = 0; i < strlen (correlation_id); i++)
     if (! (isalnum (correlation_id[i]) || (correlation_id[i] == '-')))
       return GNUNET_NO;
   return GNUNET_YES;
@@ -150,6 +161,9 @@ url_handler (void *cls,
     { "/agpl", MHD_HTTP_METHOD_GET, "text/plain",
       NULL, 0,
       &SH_MHD_handler_agpl_redirect, MHD_HTTP_FOUND },
+    { "/terms", MHD_HTTP_METHOD_GET, "text/plain",
+      NULL, 0,
+      &SH_handler_terms, MHD_HTTP_OK },
     {NULL, NULL, NULL, NULL, 0, 0 }
   };
   static struct SH_RequestHandler h404 = {
@@ -439,7 +453,6 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Starting sync-httpd\n");
-
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
@@ -447,6 +460,31 @@ run (void *cls,
                  GNUNET_log_setup ("sync-httpd",
                                    "WARNING",
                                    NULL));
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (config,
+                                             "sync",
+                                             "UPLOAD_LIMIT_MB",
+                                             &SH_upload_limit_mb))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "sync",
+                               "UPLOAD_LIMIT_MB");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      TALER_config_get_denom (config,
+                              "sync",
+                              "ANNUAL_FEE",
+                              &SH_annual_fee))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "sync",
+                               "ANNUAL_FEE");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
   if (NULL ==
       (db = SYNC_DB_plugin_load (config)))
   {
