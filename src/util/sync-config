@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -eu
+
+if ! type gnunet-config >/dev/null; then
+  echo "$0 needs gnunet-config to be installed"
+  exit 1
+fi
+
+# FIXME: not very portable ...
+# FIXME: should use "libdir" instead of prefix/lib, but somehow
+# the recursive expansion does not work ;-(.
+GC=`which gnunet-config`
+ASAN=""
+A=`ldd $GC | grep libasan` && ASAN=`echo $A | awk '{print $3 ":"}'`
+export LD_PRELOAD=${ASAN}${LD_PRELOAD:-}:/home/grothoff/lib/libsyncutil.so
+exec gnunet-config "$@"

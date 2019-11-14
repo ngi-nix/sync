@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-plugindir = $(libdir)/taler
+plugindir = $(libdir)/sync
 
 if HAVE_POSTGRESQL
 if HAVE_GNUNETPQ
@@ -27,11 +27,11 @@ libsyncdb_la_LIBADD = \
   -lgnunetutil
 libsyncdb_la_LDFLAGS = \
    $(POSTGRESQL_LDFLAGS) \
-   -version-info 2:0:0 \
+   -version-info 0:0:0 \
    -no-undefined
 
 libsync_plugin_db_postgres_la_SOURCES = \
-  plugin_sync_postgres.c
+  plugin_syncdb_postgres.c
 libsync_plugin_db_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libsync_plugin_db_postgres_la_LDFLAGS = \

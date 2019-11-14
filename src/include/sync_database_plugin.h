@@ -1,31 +1,104 @@
 /*
-  This file is part of Sync
+  This file is part of GNU Taler
   Copyright (C) 2019 Taler Systems SA
 
-  Sync is free software; you can redistribute it and/or modify it under the
+  Taler is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
   Foundation; either version 3, or (at your option) any later version.
 
-  Sync is distributed in the hope that it will be useful, but WITHOUT ANY
+  Taler is distributed in the hope that it will be useful, but WITHOUT ANY
   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
   A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License along with
-  Sync; see the file COPYING.GPL.  If not, see <http://www.gnu.org/licenses/>
+  Taler; see the file COPYING.GPL.  If not, see <http://www.gnu.org/licenses/>
 */
 /**
  * @file include/sync_database_plugin.h
  * @brief database access for Sync
  * @author Christian Grothoff
  */
-#ifndef TALER_SYNC_DATABASE_PLUGIN_H
-#define TALER_SYNC_DATABASE_PLUGIN_H
+#ifndef SYNC_DATABASE_PLUGIN_H
+#define SYNC_DATABASE_PLUGIN_H
 
 #include <gnunet/gnunet_util_lib.h>
 #include <sync_error_codes.h>
 #include "sync_service.h"
 #include <jansson.h>
 #include <taler/taler_util.h>
+
+/**
+ * Private key identifying an account.
+ */
+struct SYNC_AccountPrivateKey
+{
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_EdDSAPrivateKey eddsa_priv;
+};
+
+
+/**
+ * Public key identifying an account.
+ */
+struct SYNC_AccountPublicKey
+{
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_EdDSAPrivateKey eddsa_priv;
+};
+
+
+/**
+ * Signature made with an account's public key.
+ */
+struct SYNC_AccountSignature
+{
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_EdDSASignature eddsa_sig;
+};
+
+
+/**
+ * Possible status codes returned from the SYNC database.
+ */
+enum SYNC_DB_QueryStatus
+{
+  /**
+   * Update failed because the old backup hash does not match what we previously had in the DB.
+   */
+  SYNC_DB_OLD_BACKUP_MISSMATCH = -4,
+
+  /**
+   * Account is unpaid.
+   */
+  SYNC_DB_QS_PAYMENT_REQUIRED = -3,
+
+  /**
+   * Hard database issue, retries futile.
+   */
+  SYNC_DB_HARD_ERROR = -2,
+
+  /**
+   * Soft database error, retrying may help.
+   */
+  SYNC_DB_SOFT_ERROR = -1,
+
+  /**
+   * Database succeeded, but no results.
+   */
+  SYNC_DB_NO_RESULTS = 0,
+
+  /**
+   * Database succeeded, one change or result.
+   */
+  SYNC_DB_ONE_RESULT = 1
+};
+
 
 /**
  * Handle to interact with the database.
@@ -67,51 +140,85 @@ struct SYNC_DatabasePlugin
    * truth and financial records older than @a fin_expire.
    *
    * @param cls closure
-   * @param fin_expire financial records older than the given
-   *        time stamp should be garbage collected (usual
-   *        values might be something like 6-10 years in the past)
+   * @param expire backups older than the given time stamp should be garbage collected
    * @return transaction status
    */
   enum SYNC_DB_QueryStatus
   (*gc)(void *cls,
-        struct GNUNET_TIME_Absolute fin_expire);
+        struct GNUNET_TIME_Absolute expire);
 
   /**
-  * Do a pre-flight check that we are not in an uncommitted transaction.
-  * If we are, try to commit the previous transaction and output a warning.
-  * Does not return anything, as we will continue regardless of the outcome.
-  *
-  * @param cls the `struct PostgresClosure` with the plugin-specific state
-  */
-  void
-  (*preflight) (void *cls);
-
-  /**
-  * Check that the database connection is still up.
-  *
-  * @param pg connection to check
-  */
-  void
-  (*check_connection) (void *cls);
-
-  /**
-   * Store backup.
+   * Store backup. Only applicable for the FIRST backup under
+   * an @a account_pub. Use @e update_backup_TR to update an
+   * existing backup.
    *
    * @param cls closure
+   * @param account_pub account to store @a backup under
+   * @param account_sig signature affirming storage request
+   * @param backup_hash hash of @a backup
+   * @param backup_size number of bytes in @a backup
+   * @param backup raw data to backup
    * @return transaction status
    */
-  enum GNUNET_DB_QueryStatus
-  (*store_backup)(void *cls,
-                  ...);
+  enum SYNC_DB_QueryStatus
+  (*store_backup_TR)(void *cls,
+                     const struct SYNC_AccountPublicKey *account_pub,
+                     const struct SYNC_AccountSignature *account_sig,
+                     const struct GNUNET_HashCode *backup_hash,
+                     size_t backup_size,
+                     const void *backup);
+
+  /**
+   * Update backup.
+   *
+   * @param cls closure
+   * @param account_pub account to store @a backup under
+   * @param account_sig signature affirming storage request
+   * @param old_backup_hash hash of the previous backup (must match)
+   * @param backup_hash hash of @a backup
+   * @param backup_size number of bytes in @a backup
+   * @param backup raw data to backup
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*update_backup_TR)(void *cls,
+                      const struct SYNC_AccountPublicKey *account_pub,
+                      const struct GNUNET_HashCode *old_backup_hash,
+                      const struct SYNC_AccountSignature *account_sig,
+                      const struct GNUNET_HashCode *backup_hash,
+                      size_t backup_size,
+                      const void *backup);
 
   /**
    * Obtain backup.
    *
    * @param cls closure
+   * @param account_pub account to store @a backup under
+   * @param account_sig[OUT] set to signature affirming storage request
+   * @param backup_hash[OUT] set to hash of @a backup
+   * @param backup_size[OUT] set to number of bytes in @a backup
+   * @param backup[OUT] set to raw data to backup, caller MUST FREE
    */
-  enum GNUNET_DB_QueryStatus
-  (*lookup_backup)(void *cls,
-                   ...);
+  enum SYNC_DB_QueryStatus
+  (*lookup_backup_TR)(void *cls,
+                      const struct SYNC_AccountPublicKey *account_pub,
+                      struct SYNC_AccountSignature *account_sig,
+                      struct GNUNET_HashCode *backup_hash,
+                      size_t *backup_size,
+                      void **backup);
+
+  /**
+   * Increment account lifetime.
+   *
+   * @param cls closure
+   * @param account_pub which account received a payment
+   * @param lifetime for how long is the account now paid (increment)
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*increment_lifetime_TR)(void *cls,
+                           const struct SYNC_AccountPublicKey *account_pub,
+                           struct GNUNET_TIME_Relative lifetime);
 
 };
 #endif

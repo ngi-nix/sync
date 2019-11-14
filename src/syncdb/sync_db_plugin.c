@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  Copyright (C) 2015, 2016 GNUnet e.V. and INRIA
+  Copyright (C) 2019 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
@@ -14,13 +14,13 @@
   TALER; see the file COPYING.  If not, see <http://www.gnu.org/licenses/>
 */
 /**
- * @file merchantdb/merchantdb_plugin.c
+ * @file syncdb/sync_db_plugin.c
  * @brief Logic to load database plugin
  * @author Christian Grothoff
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 #include "platform.h"
-#include "anastasis_database_plugin.h"
+#include "sync_database_plugin.h"
 #include <ltdl.h>
 
 
@@ -30,27 +30,27 @@
  * @param cfg configuration to use
  * @return #GNUNET_OK on success
  */
-struct ANASTASIS_DatabasePlugin *
-ANASTASIS_DB_plugin_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
+struct SYNC_DatabasePlugin *
+SYNC_DB_plugin_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *plugin_name;
   char *lib_name;
   struct GNUNET_CONFIGURATION_Handle *cfg_dup;
-  struct ANASTASIS_DatabasePlugin *plugin;
+  struct SYNC_DatabasePlugin *plugin;
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "anastasis",
+                                             "sync",
                                              "db",
                                              &plugin_name))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "anastasis",
+                               "sync",
                                "db");
     return NULL;
   }
   (void) GNUNET_asprintf (&lib_name,
-                          "libanastasis_plugin_db_%s",
+                          "libsync_plugin_db_%s",
                           plugin_name);
   GNUNET_free (plugin_name);
   cfg_dup = GNUNET_CONFIGURATION_dup (cfg);
@@ -70,7 +70,7 @@ ANASTASIS_DB_plugin_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param plugin the plugin to unload
  */
 void
-ANASTASIS_DB_plugin_unload (struct ANASTASIS_DatabasePlugin *plugin)
+SYNC_DB_plugin_unload (struct SYNC_DatabasePlugin *plugin)
 {
   char *lib_name;
 
@@ -146,4 +146,4 @@ plugin_fini ()
 }
 
 
-/* end of anastasis_db_plugin.c */
+/* end of sync_db_plugin.c */

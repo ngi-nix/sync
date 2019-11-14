@@ -15,10 +15,8 @@
 */
 /**
  * @file sync/plugin_syncdb_postgres.c
- * @brief database helper functions for postgres used by the sync
- * @author Sree Harsha Totakura <sreeharsha@totakura.in>
+ * @brief database helper functions for postgres used by sync
  * @author Christian Grothoff
- * @author Marcello Stanisci
  */
 #include "platform.h"
 #include <gnunet/gnunet_util_lib.h>
@@ -26,12 +24,6 @@
 #include <taler/taler_pq_lib.h>
 #include "sync_database_plugin.h"
 #include "sync_database_lib.h"
-
-/**
- * How often do we re-try if we run into a DB serialization error?
- */
-#define MAX_RETRIES 3
-
 
 /**
  * Type of the "cls" argument given to each of the functions in
@@ -69,6 +61,7 @@ postgres_drop_tables (void *cls)
 {
   struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_ExecuteStatement es[] = {
+    GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS accounts CASCADE;"),
     GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS backups;"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
@@ -125,6 +118,7 @@ postgres_preflight (void *cls)
   pg->transaction_name = NULL;
 }
 
+
 /**
  * Start a transaction.
  *
@@ -157,12 +151,13 @@ begin_transaction (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
-* Roll back the current transaction of a database connection.
-*
-* @param cls the `struct PostgresClosure` with the plugin-specific state
-* @return #GNUNET_OK on success
-*/
+ * Roll back the current transaction of a database connection.
+ *
+ * @param cls the `struct PostgresClosure` with the plugin-specific state
+ * @return #GNUNET_OK on success
+ */
 static void
 rollback (void *cls)
 {
@@ -182,14 +177,14 @@ rollback (void *cls)
   pg->transaction_name = NULL;
 }
 
+
 /**
  * Commit the current transaction of a database connection.
  *
  * @param cls the `struct PostgresClosure` with the plugin-specific state
  * @return transaction status code
  */
-
-static enum SYNC_DB_QueryStatus
+static enum GNUNET_DB_QueryStatus
 commit_transaction (void *cls)
 {
   struct PostgresClosure *pg = cls;
@@ -205,6 +200,108 @@ commit_transaction (void *cls)
   return qs;
 }
 
+
+/**
+   * Function called to perform "garbage collection" on the
+   * database, expiring records we no longer require.  Deletes
+   * all user records that are not paid up (and by cascade deletes
+   * the associated recovery documents). Also deletes expired
+   * truth and financial records older than @a fin_expire.
+   *
+   * @param cls closure
+   * @param expire backups older than the given time stamp should be garbage collected
+   * @return transaction status
+   */
+static enum SYNC_DB_QueryStatus
+postgres_gc (void *cls,
+             struct GNUNET_TIME_Absolute expire)
+{
+}
+
+
+/**
+ * Store backup. Only applicable for the FIRST backup under
+ * an @a account_pub. Use @e update_backup_TR to update an
+ * existing backup.
+ *
+ * @param cls closure
+ * @param account_pub account to store @a backup under
+ * @param account_sig signature affirming storage request
+ * @param backup_hash hash of @a backup
+ * @param backup_size number of bytes in @a backup
+ * @param backup raw data to backup
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_store_backup (void *cls,
+                       const struct SYNC_AccountPublicKey *account_pub,
+                       const struct SYNC_AccountSignature *account_sig,
+                       const struct GNUNET_HashCode *backup_hash,
+                       size_t backup_size,
+                       const void *backup)
+{
+}
+
+
+/**
+ * Update backup.
+ *
+ * @param cls closure
+ * @param account_pub account to store @a backup under
+ * @param account_sig signature affirming storage request
+ * @param old_backup_hash hash of the previous backup (must match)
+ * @param backup_hash hash of @a backup
+ * @param backup_size number of bytes in @a backup
+ * @param backup raw data to backup
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_update_backup (void *cls,
+                        const struct SYNC_AccountPublicKey *account_pub,
+                        const struct GNUNET_HashCode *old_backup_hash,
+                        const struct SYNC_AccountSignature *account_sig,
+                        const struct GNUNET_HashCode *backup_hash,
+                        size_t backup_size,
+                        const void *backup)
+{
+}
+
+
+/**
+ * Obtain backup.
+ *
+ * @param cls closure
+ * @param account_pub account to store @a backup under
+ * @param account_sig[OUT] set to signature affirming storage request
+ * @param backup_hash[OUT] set to hash of @a backup
+ * @param backup_size[OUT] set to number of bytes in @a backup
+ * @param backup[OUT] set to raw data to backup, caller MUST FREE
+ */
+static enum SYNC_DB_QueryStatus
+postgres_lookup_backup (void *cls,
+                        const struct SYNC_AccountPublicKey *account_pub,
+                        struct SYNC_AccountSignature *account_sig,
+                        struct GNUNET_HashCode *backup_hash,
+                        size_t *backup_size,
+                        void **backup)
+{
+}
+
+
+/**
+ * Increment account lifetime.
+ *
+ * @param cls closure
+ * @param account_pub which account received a payment
+ * @param lifetime for how long is the account now paid (increment)
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_increment_lifetime (void *cls,
+                             const struct SYNC_AccountPublicKey *account_pub,
+                             struct GNUNET_TIME_Relative lifetime)
+{
+}
 
 
 /**
@@ -223,19 +320,68 @@ libsync_plugin_db_postgres_init (void *cls)
     /* Orders created by the frontend, not signed or given a nonce yet.
        The contract terms will change (nonce will be added) when moved to the
        contract terms table */
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS backups"
-                            "("                            
-                            "data BYTEA NOT NULL,"
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS accounts"
+                            "("
+                            "account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32),"
+                            "expiration_date INT8 NOT NULL"
                             ");"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS backups"
+                            "("
+                            "account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub),"
+                            "account_sig BYTEA NOT NULL CHECK (length(account_sig)=64),"
+                            "backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64),"
+                            "data BYTEA NOT NULL"
+                            ");"),
+    /* index for gc */
+    GNUNET_PQ_make_try_execute (
+      "CREATE INDEX accounts_expire ON "
+      "accounts (expiration_date);"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
   struct GNUNET_PQ_PreparedStatement ps[] = {
+    GNUNET_PQ_make_prepare ("account_insert",
+                            "INSERT INTO accounts "
+                            "("
+                            "account_pub,"
+                            "expiration_date"
+                            ") VALUES "
+                            "($1,$2);",
+                            2),
+    GNUNET_PQ_make_prepare ("account_update",
+                            "UPDATE accounts "
+                            "SET"
+                            " expiration_date=expiration_data+$1 "
+                            "WHERE"
+                            " account_pub=$2;",
+                            2),
+    GNUNET_PQ_make_prepare ("gc",
+                            "DELETE FROM accounts "
+                            "WHERE"
+                            " expiration_data<$1;",
+                            1),
     GNUNET_PQ_make_prepare ("backup_insert",
                             "INSERT INTO backups "
-                            "(data"
+                            "("
+                            "account_pub,"
+                            "account_sig,"
+                            "backup_hash,"
+                            "data"
                             ") VALUES "
-                            "($1);",
-                            1),
+                            "($1,$2,$3,$4);",
+                            4),
+    GNUNET_PQ_make_prepare ("backup_update",
+                            "UPDATE backups "
+                            " SET"
+                            " backup_hash=$1,"
+                            " account_sig=$2,"
+                            " data=$3"
+                            " WHERE"
+                            "   account_pub=$4"
+                            "  AND"
+                            "   backup_hash=$5"
+                            ") VALUES "
+                            "($1,$2,$3,$4,$5);",
+                            5),
     GNUNET_PQ_make_prepare ("do_commit",
                             "COMMIT",
                             0),
@@ -256,9 +402,10 @@ libsync_plugin_db_postgres_init (void *cls)
   plugin = GNUNET_new (struct SYNC_DatabasePlugin);
   plugin->cls = pg;
   plugin->drop_tables = &postgres_drop_tables;
-  plugin->preflight = &postgres_preflight;
-  plugin->rollback = &rollback;
-  plugin->commit = &commit_transaction;
+  plugin->gc = &postgres_gc;
+  plugin->store_backup_TR = &postgres_store_backup;
+  plugin->update_backup_TR = &postgres_update_backup;
+  plugin->increment_lifetime_TR = &postgres_increment_lifetime;
   return plugin;
 }
 
@@ -280,5 +427,6 @@ libsync_plugin_db_postgres_done (void *cls)
   GNUNET_free (plugin);
   return NULL;
 }
+
 
 /* end of plugin_syncdb_postgres.c */
