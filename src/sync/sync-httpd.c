@@ -26,7 +26,7 @@
 #include "sync-httpd_parsing.h"
 #include "sync-httpd_mhd.h"
 #include "sync_database_lib.h"
-#include "sync-httpd_policy.h"
+#include "sync-httpd_backup.h"
 
 /**
  * Backlog for listen operation on unix-domain sockets.
@@ -41,7 +41,7 @@ static long long unsigned port;
 /**
  * Should a "Connection: close" header be added to each HTTP response?
  */
-int TMH_sync_connection_close;
+int SH_sync_connection_close;
 
 /**
  * Task running the HTTP server.
@@ -72,7 +72,7 @@ static mode_t unixpath_mode;
 /**
  * Connection handle to the our database
  */
-struct sync_DatabasePlugin *db;
+struct SYNC_DatabasePlugin *db;
 
 
 /**
@@ -87,7 +87,7 @@ is_valid_correlation_id (const char *correlation_id)
   if (strlen (correlation_id) >= 64)
     return GNUNET_NO;
   for (int i = 0; i < strlen (correlation_id); i++)
-    if (! (isalnum (correlation_id[i]) ||(correlation_id[i] == '-')))
+    if (! (isalnum (correlation_id[i]) || (correlation_id[i] == '-')))
       return GNUNET_NO;
   return GNUNET_YES;
 }
@@ -142,20 +142,20 @@ url_handler (void *cls,
              size_t *upload_data_size,
              void **con_cls)
 {
-  static struct TMH_RequestHandler handlers[] = {
+  static struct SH_RequestHandler handlers[] = {
     /* Landing page, tell humans to go away. */
     { "/", MHD_HTTP_METHOD_GET, "text/plain",
       "Hello, I'm sync. This HTTP server is not for humans.\n", 0,
-      &TMH_MHD_handler_static_response, MHD_HTTP_OK },
+      &SH_MHD_handler_static_response, MHD_HTTP_OK },
     { "/agpl", MHD_HTTP_METHOD_GET, "text/plain",
       NULL, 0,
-      &TMH_MHD_handler_agpl_redirect, MHD_HTTP_FOUND },
+      &SH_MHD_handler_agpl_redirect, MHD_HTTP_FOUND },
     {NULL, NULL, NULL, NULL, 0, 0 }
   };
-  static struct TMH_RequestHandler h404 = {
+  static struct SH_RequestHandler h404 = {
     "", NULL, "text/html",
     "<html><title>404: not found</title></html>", 0,
-    &TMH_MHD_handler_static_response, MHD_HTTP_NOT_FOUND
+    &SH_MHD_handler_static_response, MHD_HTTP_NOT_FOUND
   };
 
   struct TM_HandlerContext *hc;
@@ -200,13 +200,13 @@ url_handler (void *cls,
   if (0 == strncmp (url,
                     "/backup/",
                     strlen ("/backup/")))
-    {
+  {
     // return handle_policy (...);
     if (0 == strcmp (method, MHD_HTTP_METHOD_GET))
     {
       return sync_handler_backup_get (connection,
-                                     url,
-                                     con_cls);
+                                      url,
+                                      con_cls);
     }
     if (0 == strcmp (method, MHD_HTTP_METHOD_POST))
     {
@@ -219,7 +219,7 @@ url_handler (void *cls,
   }
   for (unsigned int i = 0; NULL != handlers[i].url; i++)
   {
-    struct TMH_RequestHandler *rh = &handlers[i];
+    struct SH_RequestHandler *rh = &handlers[i];
 
     if ( (0 == strcmp (url,
                        rh->url)) &&
@@ -245,11 +245,11 @@ url_handler (void *cls,
       return ret;
     }
   }
-  return TMH_MHD_handler_static_response (&h404,
-                                          connection,
-                                          con_cls,
-                                          upload_data,
-                                          upload_data_size);
+  return SH_MHD_handler_static_response (&h404,
+                                         connection,
+                                         con_cls,
+                                         upload_data,
+                                         upload_data_size);
 }
 
 
@@ -274,7 +274,7 @@ do_shutdown (void *cls)
   }
   if (NULL != db)
   {
-    sync_DB_plugin_unload (db);
+    SYNC_DB_plugin_unload (db);
     db = NULL;
   }
 }
@@ -352,7 +352,7 @@ run_daemon (void *cls)
  * the task processing MHD's activities to run immediately.
  */
 void
-TMH_trigger_daemon ()
+SH_trigger_daemon ()
 {
   if (NULL != mhd_task)
   {
@@ -448,7 +448,7 @@ run (void *cls,
                                    "WARNING",
                                    NULL));
   if (NULL ==
-      (db = sync_DB_plugin_load (config)))
+      (db = SYNC_DB_plugin_load (config)))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -729,7 +729,7 @@ main (int argc,
     GNUNET_GETOPT_option_flag ('C',
                                "connection-close",
                                "force HTTP connections to be closed after each request",
-                               &TMH_sync_connection_close),
+                               &SH_sync_connection_close),
 
     GNUNET_GETOPT_OPTION_END
   };

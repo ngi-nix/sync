@@ -28,7 +28,7 @@
 /**
  * @brief Struct describing an URL and the handler for it.
  */
-struct TMH_RequestHandler
+struct SH_RequestHandler
 {
 
   /**
@@ -67,7 +67,7 @@ struct TMH_RequestHandler
    * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
    * @return MHD result code
    */
-  int (*handler)(struct TMH_RequestHandler *rh,
+  int (*handler)(struct SH_RequestHandler *rh,
                  struct MHD_Connection *connection,
                  void **connection_cls,
                  const char *upload_data,
@@ -117,7 +117,7 @@ struct TM_HandlerContext
   /**
    * Which request handler is handling this request?
    */
-  const struct TMH_RequestHandler *rh;
+  const struct SH_RequestHandler *rh;
 
   /**
    * Asynchronous request context id.
@@ -129,12 +129,12 @@ struct TM_HandlerContext
 /**
  * Should a "Connection: close" header be added to each HTTP response?
  */
-extern int TMH_sync_connection_close;
+extern int SH_sync_connection_close;
 
 /**
  * Handle to the database backend.
  */
-extern struct sync_DatabasePlugin *db;
+extern struct SYNC_DatabasePlugin *db;
 
 /**
  * Kick MHD to run now, to be called after MHD_resume_connection().
@@ -143,6 +143,6 @@ extern struct sync_DatabasePlugin *db;
  * the task processing MHD's activities to run immediately.
  */
 void
-TMH_trigger_daemon (void);
+SH_trigger_daemon (void);
 
 #endif

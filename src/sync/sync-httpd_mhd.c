@@ -40,11 +40,11 @@
  * @return MHD result code
  */
 int
-TMH_MHD_handler_static_response (struct TMH_RequestHandler *rh,
-                                 struct MHD_Connection *connection,
-                                 void **connection_cls,
-                                 const char *upload_data,
-                                 size_t *upload_data_size)
+SH_MHD_handler_static_response (struct SH_RequestHandler *rh,
+                                struct MHD_Connection *connection,
+                                void **connection_cls,
+                                const char *upload_data,
+                                size_t *upload_data_size)
 {
   struct MHD_Response *response;
   int ret;
@@ -59,7 +59,7 @@ TMH_MHD_handler_static_response (struct TMH_RequestHandler *rh,
     GNUNET_break (0);
     return MHD_NO;
   }
-  TMH_RESPONSE_add_global_headers (response);
+  SH_RESPONSE_add_global_headers (response);
   if (NULL != rh->mime_type)
     (void) MHD_add_response_header (response,
                                     MHD_HTTP_HEADER_CONTENT_TYPE,
@@ -84,11 +84,11 @@ TMH_MHD_handler_static_response (struct TMH_RequestHandler *rh,
  * @return MHD result code
  */
 int
-TMH_MHD_handler_agpl_redirect (struct TMH_RequestHandler *rh,
-                               struct MHD_Connection *connection,
-                               void **connection_cls,
-                               const char *upload_data,
-                               size_t *upload_data_size)
+SH_MHD_handler_agpl_redirect (struct SH_RequestHandler *rh,
+                              struct MHD_Connection *connection,
+                              void **connection_cls,
+                              const char *upload_data,
+                              size_t *upload_data_size)
 {
   const char *agpl =
     "This server is licensed under the Affero GPL. You will now be redirected to the source code.";
@@ -103,7 +103,7 @@ TMH_MHD_handler_agpl_redirect (struct TMH_RequestHandler *rh,
     GNUNET_break (0);
     return MHD_NO;
   }
-  TMH_RESPONSE_add_global_headers (response);
+  SH_RESPONSE_add_global_headers (response);
   if (NULL != rh->mime_type)
     (void) MHD_add_response_header (response,
                                     MHD_HTTP_HEADER_CONTENT_TYPE,
@@ -139,17 +139,17 @@ TMH_MHD_handler_agpl_redirect (struct TMH_RequestHandler *rh,
  * @return MHD result code
  */
 int
-TMH_MHD_handler_send_json_pack_error (struct TMH_RequestHandler *rh,
-                                      struct MHD_Connection *connection,
-                                      void **connection_cls,
-                                      const char *upload_data,
-                                      size_t *upload_data_size)
+SH_MHD_handler_send_json_pack_error (struct SH_RequestHandler *rh,
+                                     struct MHD_Connection *connection,
+                                     void **connection_cls,
+                                     const char *upload_data,
+                                     size_t *upload_data_size)
 {
-  return TMH_RESPONSE_reply_json_pack (connection,
-                                       rh->response_code,
-                                       "{s:s}",
-                                       "error",
-                                       rh->data);
+  return SH_RESPONSE_reply_json_pack (connection,
+                                      rh->response_code,
+                                      "{s:s}",
+                                      "error",
+                                      rh->data);
 }
 
 

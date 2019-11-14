@@ -16,7 +16,7 @@
 /**
  * @file sync-httpd_responses.h
  * @brief API for generating the various replies of the exchange; these
- *        functions are called TMH_RESPONSE_reply_ and they generate
+ *        functions are called SH_RESPONSE_reply_ and they generate
  *        and queue MHD response objects for a given connection.
  * @author Florian Dold
  * @author Benedikt Mueller
@@ -38,7 +38,7 @@
  * @return MHD response object
  */
 struct MHD_Response *
-TMH_RESPONSE_make_json (const json_t *json);
+SH_RESPONSE_make_json (const json_t *json);
 
 
 /**
@@ -50,9 +50,9 @@ TMH_RESPONSE_make_json (const json_t *json);
  * @return MHD result code
  */
 int
-TMH_RESPONSE_reply_json (struct MHD_Connection *connection,
-                         const json_t *json,
-                         unsigned int response_code);
+SH_RESPONSE_reply_json (struct MHD_Connection *connection,
+                        const json_t *json,
+                        unsigned int response_code);
 
 
 /**
@@ -63,8 +63,8 @@ TMH_RESPONSE_reply_json (struct MHD_Connection *connection,
  * @return MHD response object
  */
 struct MHD_Response *
-TMH_RESPONSE_make_json_pack (const char *fmt,
-                             ...);
+SH_RESPONSE_make_json_pack (const char *fmt,
+                            ...);
 
 
 
@@ -80,10 +80,10 @@ TMH_RESPONSE_make_json_pack (const char *fmt,
  * @return MHD result code
  */
 int
-TMH_RESPONSE_reply_json_pack (struct MHD_Connection *connection,
-                              unsigned int response_code,
-                              const char *fmt,
-                              ...);
+SH_RESPONSE_reply_json_pack (struct MHD_Connection *connection,
+                             unsigned int response_code,
+                             const char *fmt,
+                             ...);
 
 
 /**
@@ -94,8 +94,8 @@ TMH_RESPONSE_reply_json_pack (struct MHD_Connection *connection,
  * @return a MHD response object
  */
 struct MHD_Response *
-TMH_RESPONSE_make_error (enum TALER_ErrorCode ec,
-                         const char *hint);
+SH_RESPONSE_make_error (enum TALER_ErrorCode ec,
+                        const char *hint);
 
 
 /**
@@ -107,9 +107,9 @@ TMH_RESPONSE_make_error (enum TALER_ErrorCode ec,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_internal_error (struct MHD_Connection *connection,
-                                   enum TALER_ErrorCode ec,
-                                   const char *hint);
+SH_RESPONSE_reply_internal_error (struct MHD_Connection *connection,
+                                  enum TALER_ErrorCode ec,
+                                  const char *hint);
 
 
 
@@ -121,7 +121,7 @@ TMH_RESPONSE_reply_internal_error (struct MHD_Connection *connection,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_request_too_large (struct MHD_Connection *connection);
+SH_RESPONSE_reply_request_too_large (struct MHD_Connection *connection);
 
 
 
@@ -136,10 +136,10 @@ TMH_RESPONSE_reply_request_too_large (struct MHD_Connection *connection);
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_rc (struct MHD_Connection *connection,
-                       unsigned int response_code,
-                       enum TALER_ErrorCode ec,
-                       const char *msg);
+SH_RESPONSE_reply_rc (struct MHD_Connection *connection,
+                      unsigned int response_code,
+                      enum TALER_ErrorCode ec,
+                      const char *msg);
 
 
 
@@ -150,7 +150,7 @@ TMH_RESPONSE_reply_rc (struct MHD_Connection *connection,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_invalid_json (struct MHD_Connection *connection);
+SH_RESPONSE_reply_invalid_json (struct MHD_Connection *connection);
 
 
 
@@ -164,9 +164,9 @@ TMH_RESPONSE_reply_invalid_json (struct MHD_Connection *connection);
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_not_found (struct MHD_Connection *connection,
-                              enum TALER_ErrorCode ec,
-                              const char *object);
+SH_RESPONSE_reply_not_found (struct MHD_Connection *connection,
+                             enum TALER_ErrorCode ec,
+                             const char *object);
 
 
 
@@ -179,9 +179,9 @@ TMH_RESPONSE_reply_not_found (struct MHD_Connection *connection,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_bad_request (struct MHD_Connection *connection,
-                                enum TALER_ErrorCode ec,
-                                const char *issue);
+SH_RESPONSE_reply_bad_request (struct MHD_Connection *connection,
+                               enum TALER_ErrorCode ec,
+                               const char *issue);
 
 
 
@@ -194,7 +194,7 @@ TMH_RESPONSE_reply_bad_request (struct MHD_Connection *connection,
  * @param response response to modify
  */
 void
-TMH_RESPONSE_add_global_headers (struct MHD_Response *response);
+SH_RESPONSE_add_global_headers (struct MHD_Response *response);
 
 
 
@@ -207,9 +207,9 @@ TMH_RESPONSE_add_global_headers (struct MHD_Response *response);
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_external_error (struct MHD_Connection *connection,
-                                   enum TALER_ErrorCode ec,
-                                   const char *hint);
+SH_RESPONSE_reply_external_error (struct MHD_Connection *connection,
+                                  enum TALER_ErrorCode ec,
+                                  const char *hint);
 
 
 
@@ -223,9 +223,9 @@ TMH_RESPONSE_reply_external_error (struct MHD_Connection *connection,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_arg_missing (struct MHD_Connection *connection,
-                                enum TALER_ErrorCode ec,
-                                const char *param_name);
+SH_RESPONSE_reply_arg_missing (struct MHD_Connection *connection,
+                               enum TALER_ErrorCode ec,
+                               const char *param_name);
 
 
 /**
@@ -237,8 +237,8 @@ TMH_RESPONSE_reply_arg_missing (struct MHD_Connection *connection,
  * @return a MHD result code
  */
 int
-TMH_RESPONSE_reply_arg_invalid (struct MHD_Connection *connection,
-                                enum TALER_ErrorCode ec,
-                                const char *param_name);
+SH_RESPONSE_reply_arg_invalid (struct MHD_Connection *connection,
+                               enum TALER_ErrorCode ec,
+                               const char *param_name);
 
 #endif

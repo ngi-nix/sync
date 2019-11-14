@@ -16,7 +16,6 @@
   License along with TALER; see the file COPYING.  If not,
   see <http://www.gnu.org/licenses/>
 */
-
 /**
  * @file sync-httpd_parsing.c
  * @brief functions to parse incoming requests
@@ -67,8 +66,6 @@ struct Buffer
 };
 
 
-
-
 /**
  * Free the data in a buffer.  Does *not* free
  * the buffer object itself.
@@ -83,16 +80,15 @@ buffer_deinit (struct Buffer *buf)
 }
 
 
-
 /**
  * Function called whenever we are done with a request
  * to clean up our state.
  *
  * @param con_cls value as it was left by
- *        #TMH_PARSE_post_json(), to be cleaned up
+ *        #SH_PARSE_post_json(), to be cleaned up
  */
 void
-TMH_PARSE_post_cleanup_callback (void *con_cls)
+SH_PARSE_post_cleanup_callback (void *con_cls)
 {
   struct Buffer *r = con_cls;
 
@@ -109,7 +105,7 @@ TMH_PARSE_post_cleanup_callback (void *con_cls)
  * realizes an MHD POST processor that will (incrementally) process
  * JSON data uploaded to the HTTP server.  It will store the
  * required state in the @a con_cls, which must be cleaned up
- * using #TMH_PARSE_post_cleanup_callback().
+ * using #SH_PARSE_post_cleanup_callback().
  *
  * @param connection the MHD connection
  * @param con_cls the closure (points to a `struct Buffer *`)
@@ -128,11 +124,11 @@ TMH_PARSE_post_cleanup_callback (void *con_cls)
  *                close HTTP session with MHD_NO)
  */
 int
-TMH_PARSE_post_json (struct MHD_Connection *connection,
-                     void **con_cls,
-                     const char *upload_data,
-                     size_t *upload_data_size,
-                     json_t **json)
+SH_PARSE_post_json (struct MHD_Connection *connection,
+                    void **con_cls,
+                    const char *upload_data,
+                    size_t *upload_data_size,
+                    json_t **json)
 {
   enum GNUNET_JSON_PostResult pr;
 
@@ -146,7 +142,7 @@ TMH_PARSE_post_json (struct MHD_Connection *connection,
   {
 
   case GNUNET_JSON_PR_OUT_OF_MEMORY:
-    return (MHD_NO == TMH_RESPONSE_reply_internal_error
+    return (MHD_NO == SH_RESPONSE_reply_internal_error
               (connection,
               TALER_EC_PARSER_OUT_OF_MEMORY,
               "out of memory")) ? GNUNET_SYSERR : GNUNET_NO;
@@ -155,12 +151,12 @@ TMH_PARSE_post_json (struct MHD_Connection *connection,
     return GNUNET_YES;
 
   case GNUNET_JSON_PR_REQUEST_TOO_LARGE:
-    return (MHD_NO == TMH_RESPONSE_reply_request_too_large
+    return (MHD_NO == SH_RESPONSE_reply_request_too_large
               (connection)) ? GNUNET_SYSERR : GNUNET_NO;
 
   case GNUNET_JSON_PR_JSON_INVALID:
     return (MHD_YES ==
-            TMH_RESPONSE_reply_invalid_json (connection))
+            SH_RESPONSE_reply_invalid_json (connection))
            ? GNUNET_NO : GNUNET_SYSERR;
   case GNUNET_JSON_PR_SUCCESS:
     GNUNET_break (NULL != *json);
@@ -187,9 +183,9 @@ TMH_PARSE_post_json (struct MHD_Connection *connection,
  *    #GNUNET_SYSERR on internal error
  */
 int
-TMH_PARSE_json_data (struct MHD_Connection *connection,
-                     const json_t *root,
-                     struct GNUNET_JSON_Specification *spec)
+SH_PARSE_json_data (struct MHD_Connection *connection,
+                    const json_t *root,
+                    struct GNUNET_JSON_Specification *spec)
 {
   int ret;
   const char *error_json_name;
@@ -207,18 +203,17 @@ TMH_PARSE_json_data (struct MHD_Connection *connection,
                 "Parsing failed due to field '%s'\n",
                 error_json_name);
     ret = (MHD_YES ==
-           TMH_RESPONSE_reply_json_pack (connection,
-                                         MHD_HTTP_BAD_REQUEST,
-                                         "{s:s, s:s, s:I}",
-                                         "error", "parse error",
-                                         "field", error_json_name,
-                                         "line", (json_int_t) error_line))
+           SH_RESPONSE_reply_json_pack (connection,
+                                        MHD_HTTP_BAD_REQUEST,
+                                        "{s:s, s:s, s:I}",
+                                        "error", "parse error",
+                                        "field", error_json_name,
+                                        "line", (json_int_t) error_line))
           ? GNUNET_NO : GNUNET_SYSERR;
     return ret;
   }
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -237,10 +232,10 @@ TMH_PARSE_json_data (struct MHD_Connection *connection,
  *   #GNUNET_SYSERR on internal error (error response could not be sent)
  */
 int
-TMH_PARSE_mhd_request_arg_data (struct MHD_Connection *connection,
-                                const char *param_name,
-                                void *out_data,
-                                size_t out_size)
+SH_PARSE_mhd_request_arg_data (struct MHD_Connection *connection,
+                               const char *param_name,
+                               void *out_data,
+                               size_t out_size)
 {
   const char *str;
 
@@ -250,9 +245,9 @@ TMH_PARSE_mhd_request_arg_data (struct MHD_Connection *connection,
   if (NULL == str)
   {
     return (MHD_NO ==
-            TMH_RESPONSE_reply_arg_missing (connection,
-                                            TALER_EC_PARAMETER_MISSING,
-                                            param_name))
+            SH_RESPONSE_reply_arg_missing (connection,
+                                           TALER_EC_PARAMETER_MISSING,
+                                           param_name))
            ? GNUNET_SYSERR : GNUNET_NO;
   }
   if (GNUNET_OK !=
@@ -261,9 +256,9 @@ TMH_PARSE_mhd_request_arg_data (struct MHD_Connection *connection,
                                      out_data,
                                      out_size))
     return (MHD_NO ==
-            TMH_RESPONSE_reply_arg_invalid (connection,
-                                            TALER_EC_PARAMETER_MALFORMED,
-                                            param_name))
+            SH_RESPONSE_reply_arg_invalid (connection,
+                                           TALER_EC_PARAMETER_MALFORMED,
+                                           param_name))
            ? GNUNET_SYSERR : GNUNET_NO;
   return GNUNET_OK;
 }

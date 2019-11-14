@@ -33,7 +33,7 @@
  * (incrementally) process JSON data uploaded to the HTTP
  * server.  It will store the required state in the
  * "connection_cls", which must be cleaned up using
- * #TMH_PARSE_post_cleanup_callback().
+ * #SH_PARSE_post_cleanup_callback().
  *
  * @param connection the MHD connection
  * @param con_cls the closure (points to a `struct Buffer *`)
@@ -52,11 +52,11 @@
  *                close HTTP session with MHD_NO)
  */
 int
-TMH_PARSE_post_json (struct MHD_Connection *connection,
-                     void **con_cls,
-                     const char *upload_data,
-                     size_t *upload_data_size,
-                     json_t **json);
+SH_PARSE_post_json (struct MHD_Connection *connection,
+                    void **con_cls,
+                    const char *upload_data,
+                    size_t *upload_data_size,
+                    json_t **json);
 
 
 /**
@@ -64,10 +64,10 @@ TMH_PARSE_post_json (struct MHD_Connection *connection,
  * to clean up our state.
  *
  * @param con_cls value as it was left by
- *        #TMH_PARSE_post_json(), to be cleaned up
+ *        #SH_PARSE_post_json(), to be cleaned up
  */
 void
-TMH_PARSE_post_cleanup_callback (void *con_cls);
+SH_PARSE_post_cleanup_callback (void *con_cls);
 
 
 /**
@@ -85,9 +85,9 @@ TMH_PARSE_post_cleanup_callback (void *con_cls);
  *    #GNUNET_SYSERR on internal error
  */
 int
-TMH_PARSE_json_data (struct MHD_Connection *connection,
-                     const json_t *root,
-                     struct GNUNET_JSON_Specification *spec);
+SH_PARSE_json_data (struct MHD_Connection *connection,
+                    const json_t *root,
+                    struct GNUNET_JSON_Specification *spec);
 
 
 #endif /* TALER_MERCHANT_HTTPD_PARSING_H */

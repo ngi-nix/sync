@@ -28,7 +28,7 @@
 #include <microhttpd.h> /* just for HTTP status codes */
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_curl_lib.h>
-#include "anastasis_service.h"
+#include "sync_service.h"
 
 
 /**

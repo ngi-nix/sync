@@ -14,10 +14,9 @@ sync_httpd_SOURCES = \
   sync-httpd_parsing.c sync-httpd_parsing.h \
   sync-httpd_responses.c sync-httpd_responses.h \
   sync-httpd_mhd.c sync-httpd_mhd.h \
-  sync-httpd_policy.c sync-httpd_policy.h
-
+  sync-httpd_backup.c sync-httpd_backup.h
 sync_httpd_LDADD = \
-  $(top_builddir)/src/stasis/libsyncdb.la \
+  $(top_builddir)/src/syncdb/libsyncdb.la \
   -lmicrohttpd \
   -ljansson \
   -lgnunetcurl \
