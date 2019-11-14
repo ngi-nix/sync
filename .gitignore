@@ -1,3 +1,12 @@
+*~
+*.log
+*.trs
+*.a
+*.o
+*.orig
+*.rej
+.deps/
+.libs/
 Makefile
 Makefile.in
 aclocal.m4
