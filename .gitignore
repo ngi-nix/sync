@@ -72,3 +72,4 @@ A
 
 sync_config.h
 sync_config.h.in
+src/sync/sync-httpd
