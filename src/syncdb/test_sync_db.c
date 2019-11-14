@@ -1,6 +1,6 @@
 /*
   This file is part of
-  (C) 2014-2017 INRIA
+  (C) 2019 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
@@ -16,7 +16,6 @@
 /**
  * @file sync/test_sync_db.c
  * @brief testcase for sync postgres db plugin
- * @author Marcello Stanisci
  * @author Christian Grothoff
  */
 
@@ -51,74 +50,9 @@ static int result;
 static struct SYNC_DatabasePlugin *plugin;
 
 /**
- * Payment Secret for the test, set to a random value
- */
-static struct SYNC_PaymentSecretP paymentSecretP;
-
-/**
  * User public key, set to a random value
  */
 static struct SYNC_AccountPubP accountPubP;
-
-/**
- * Amount which is deposited, set to random value
- */
-static struct TALER_Amount amount;
-
-/**
- * How many posts are paid by the payment
- */
-static unsigned int post_counter;
-
-/**
- * Recoverydata which is stored into the Database, set to a random value
- */
-static void *recovery_data;
-
-/**
- * Recovery_data for the select test
- */
-static void *res_recovery_data;
-
-/**
- * Truthdata which is stored into the Database, set to a random value
- */
-static void *truth_data;
-
-/**
- * Truth for the select test
- */
-static void *truth;
-
-/**
- * Keyshare which is stored into the Database, set to a random value
- */
-static void *key_share;
-
-/**
- * Keyshare for the select test
- */
-static void *res_key_share;
-
-/**
- * Mime-type of truth
- */
-static char *mime_type;
-
-/**
- * Mime-type of truth for the select test
- */
-static char *res_mime_type;
-
-/**
- * Version of a Recoverydocument
- */
-static uint32_t version;
-
-/**
- * Version of the latest Recoverydocument
- */
-static uint32_t res_version;
 
 
 /**
@@ -149,6 +83,8 @@ run (void *cls)
     result = 77;
     return;
   }
+
+  // FIXME: test logic here!
 
   GNUNET_break (GNUNET_OK ==
                 plugin->drop_tables (plugin->cls));
@@ -196,5 +132,6 @@ main (int argc,
   GNUNET_free (testname);
   return result;
 }
+
 
 /* end of test_sync_db.c */
