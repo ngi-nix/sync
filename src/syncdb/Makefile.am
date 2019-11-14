@@ -22,6 +22,7 @@ libsyncdb_la_SOURCES = \
   sync_db_plugin.c
 
 libsyncdb_la_LIBADD = \
+  $(top_builddir)/src/util/libsyncutil.la \
   -lgnunetpq \
   -lpq \
   -lgnunetutil
@@ -35,6 +36,7 @@ libsync_plugin_db_postgres_la_SOURCES = \
 libsync_plugin_db_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libsync_plugin_db_postgres_la_LDFLAGS = \
+  $(top_builddir)/src/util/libsyncutil.la \
   $(TALER_PLUGIN_LDFLAGS) \
   -lgnunetpq \
   -lpq \
@@ -52,8 +54,7 @@ test_sync_db_postgres_LDFLAGS = \
   -lgnunetutil \
   -lgnunetpq \
   -ltalerutil \
-  -ltalerpq \
-  -luuid
+  -ltalerpq
 
 TESTS = \
   test_sync_db-postgres
