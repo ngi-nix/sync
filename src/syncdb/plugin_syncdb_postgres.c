@@ -20,6 +20,7 @@
  */
 #include "platform.h"
 #include <gnunet/gnunet_util_lib.h>
+#include <gnunet/gnunet_db_lib.h>
 #include <gnunet/gnunet_pq_lib.h>
 #include <taler/taler_pq_lib.h>
 #include "sync_database_plugin.h"
@@ -255,7 +256,7 @@ postgres_store_backup (void *cls,
                        const void *backup)
 {
   struct PostgresClosure *pg = cls;
-  struct GNUNET_PQ_QueryStatus qs;
+  enum GNUNET_DB_QueryStatus qs;
   struct GNUNET_HashCode bh;
 
   check_connection (pg);
@@ -282,11 +283,14 @@ postgres_store_backup (void *cls,
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     GNUNET_break (0);
     return SYNC_DB_NO_RESULTS;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
   case GNUNET_DB_STATUS_HARD_ERROR:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* First, check if account exists */
@@ -316,9 +320,12 @@ postgres_store_backup (void *cls,
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     return SYNC_DB_PAYMENT_REQUIRED;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* account exists, check if existing backup conflicts */
@@ -348,9 +355,12 @@ postgres_store_backup (void *cls,
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     /* original error must have been a hard error, oddly enough */
     return SYNC_DB_HARD_ERROR;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* had an existing backup, is it identical? */
@@ -385,7 +395,7 @@ postgres_update_backup (void *cls,
                         const void *backup)
 {
   struct PostgresClosure *pg = cls;
-  struct GNUNET_PQ_QueryStatus qs;
+  enum GNUNET_DB_QueryStatus qs;
   struct GNUNET_HashCode bh;
 
   check_connection (pg);
@@ -413,11 +423,14 @@ postgres_update_backup (void *cls,
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     GNUNET_break (0);
     return SYNC_DB_NO_RESULTS;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
   case GNUNET_DB_STATUS_HARD_ERROR:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* First, check if account exists */
@@ -447,9 +460,12 @@ postgres_update_backup (void *cls,
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     return SYNC_DB_PAYMENT_REQUIRED;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* account exists, check if existing backup conflicts */
@@ -480,9 +496,12 @@ postgres_update_backup (void *cls,
     /* Well, trying to update where there is no original
        is a hard erorr, even though an odd one */
     return SYNC_DB_HARD_ERROR;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     /* handle interesting case below */
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 
   /* had an existing backup, is it identical? */
@@ -519,6 +538,7 @@ postgres_lookup_backup (void *cls,
                         void **backup)
 {
   struct PostgresClosure *pg = cls;
+  enum GNUNET_DB_QueryStatus qs;
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (account_pub),
     GNUNET_PQ_query_param_end
@@ -529,8 +549,8 @@ postgres_lookup_backup (void *cls,
     GNUNET_PQ_result_spec_auto_from_type ("backup_hash",
                                           backup_hash),
     GNUNET_PQ_result_spec_variable_size ("data",
-                                         &backup,
-                                         &backup_size),
+                                         backup,
+                                         backup_size),
     GNUNET_PQ_result_spec_end
   };
 
@@ -549,8 +569,11 @@ postgres_lookup_backup (void *cls,
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     return SYNC_DB_NO_RESULTS;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 }
 
@@ -570,7 +593,7 @@ postgres_increment_lifetime (void *cls,
 {
   struct PostgresClosure *pg = cls;
   struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_PQ_QueryStatus qs;
+  enum GNUNET_DB_QueryStatus qs;
 
   check_connection (pg);
   if (GNUNET_OK !=
@@ -586,12 +609,12 @@ postgres_increment_lifetime (void *cls,
       GNUNET_PQ_query_param_end
     };
     struct GNUNET_PQ_ResultSpec rs[] = {
-      TALER_PQ_result_spec_absolute_time ("wire_deadline",
-                                          &wire_deadline),
+      TALER_PQ_result_spec_absolute_time ("expiration_date",
+                                          &expiration),
       GNUNET_PQ_result_spec_end
     };
 
-    qs = GNUNET_PQ_eval_prepared_singleton_select (session->conn,
+    qs = GNUNET_PQ_eval_prepared_singleton_select (pg->conn,
                                                    "account_select",
                                                    params,
                                                    rs);
@@ -613,12 +636,13 @@ postgres_increment_lifetime (void *cls,
         GNUNET_PQ_query_param_end
       };
 
+      expiration = GNUNET_TIME_relative_to_absolute (lifetime);
       qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
                                                "account_insert",
                                                params);
     }
     break;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     {
       struct GNUNET_PQ_QueryParam params[] = {
         GNUNET_PQ_query_param_absolute_time (&expiration),
@@ -626,11 +650,16 @@ postgres_increment_lifetime (void *cls,
         GNUNET_PQ_query_param_end
       };
 
+      expiration = GNUNET_TIME_absolute_add (expiration,
+                                             lifetime);
       qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
                                                "account_update",
                                                params);
     }
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
   switch (qs)
   {
@@ -645,8 +674,11 @@ postgres_increment_lifetime (void *cls,
     GNUNET_break (0);
     rollback (pg);
     return SYNC_DB_NO_RESULTS;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     break;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
   qs = commit_transaction (pg);
   switch (qs)
@@ -658,8 +690,11 @@ postgres_increment_lifetime (void *cls,
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     return SYNC_DB_ONE_RESULT;
-  case GNUNET_DB_STATUS_SUCCESS_RESULT_ONE:
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   }
 }
 
@@ -789,6 +824,7 @@ libsync_plugin_db_postgres_init (void *cls)
   plugin->drop_tables = &postgres_drop_tables;
   plugin->gc = &postgres_gc;
   plugin->store_backup_TR = &postgres_store_backup;
+  plugin->lookup_backup_TR = &postgres_lookup_backup;
   plugin->update_backup_TR = &postgres_update_backup;
   plugin->increment_lifetime_TR = &postgres_increment_lifetime;
   return plugin;

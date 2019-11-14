@@ -22,45 +22,9 @@
 #define SYNC_DATABASE_PLUGIN_H
 
 #include <gnunet/gnunet_util_lib.h>
-#include <sync_error_codes.h>
 #include "sync_service.h"
 #include <jansson.h>
 #include <taler/taler_util.h>
-
-/**
- * Private key identifying an account.
- */
-struct SYNC_AccountPrivateKey
-{
-  /**
-   * We use EdDSA.
-   */
-  struct GNUNET_EdDSAPrivateKey eddsa_priv;
-};
-
-
-/**
- * Public key identifying an account.
- */
-struct SYNC_AccountPublicKey
-{
-  /**
-   * We use EdDSA.
-   */
-  struct GNUNET_EdDSAPrivateKey eddsa_priv;
-};
-
-
-/**
- * Signature made with an account's public key.
- */
-struct SYNC_AccountSignature
-{
-  /**
-   * We use EdDSA.
-   */
-  struct GNUNET_EdDSASignature eddsa_sig;
-};
 
 
 /**
@@ -76,7 +40,7 @@ enum SYNC_DB_QueryStatus
   /**
    * Account is unpaid.
    */
-  SYNC_DB_QS_PAYMENT_REQUIRED = -3,
+  SYNC_DB_PAYMENT_REQUIRED = -3,
 
   /**
    * Hard database issue, retries futile.

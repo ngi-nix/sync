@@ -21,16 +21,44 @@
 #ifndef _SYNC_SERVICE_H
 #define _SYNC_SERVICE_H
 
+#include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_curl_lib.h>
 #include <jansson.h>
 
 
 /**
- * An EdDSA public key that is used to identify a user's account.
+ * Private key identifying an account.
  */
-struct SYNC_AccountPubP
+struct SYNC_AccountPrivateKey
 {
-  struct GNUNET_CRYPTO_EddsaPublicKey pub;
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_CRYPTO_EddsaPrivateKey eddsa_priv;
+};
+
+
+/**
+ * Public key identifying an account.
+ */
+struct SYNC_AccountPublicKey
+{
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_CRYPTO_EddsaPrivateKey eddsa_priv;
+};
+
+
+/**
+ * Signature made with an account's public key.
+ */
+struct SYNC_AccountSignature
+{
+  /**
+   * We use EdDSA.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature eddsa_sig;
 };
 
 
@@ -46,19 +74,16 @@ void
 SYNC_upload_cancel (struct SYNC_UploadOperation *uo);
 
 
-
 struct SYNC_DownloadOperation;
 
 struct SYNC_DownloadOperation *
 SYNC_download (struct GNUNET_CURL_Context *ctx,
-             const char *base_url,
-             ...);
+               const char *base_url,
+               ...);
 
 
 void
 SYNC_download_cancel (struct SYNC_DownloadOperation *uo);
-
-
 
 
 #endif  /* _SYNC_SERVICE_H */

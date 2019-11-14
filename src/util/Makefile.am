@@ -9,9 +9,6 @@ endif
 
 pkgcfgdir = $(prefix)/share/sync/config.d/
 
-pkgcfg_DATA = \
-  paths.conf
-
 bin_SCRIPTS = \
   sync-config
 

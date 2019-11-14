@@ -4,9 +4,9 @@
 # This configure file is in the public domain
 
 AC_PREREQ([2.69])
-AC_INIT([anastasis], [0.5.0], [taler-bug@gnu.org])
-AC_CONFIG_SRCDIR([src/backend/anastasis-httpd.c])
-AC_CONFIG_HEADERS([anastasis_config.h])
+AC_INIT([sync], [0.5.0], [taler-bug@gnu.org])
+AC_CONFIG_SRCDIR([src/sync/sync-httpd.c])
+AC_CONFIG_HEADERS([sync_config.h])
 # support for non-recursive builds
 AM_INIT_AUTOMAKE([subdir-objects 1.9 tar-pax])
 
@@ -17,7 +17,7 @@ AC_CONFIG_MACRO_DIR([m4])
 
 LT_INIT
 
-DX_INIT_DOXYGEN([anastasis],,,
+DX_INIT_DOXYGEN([sync],,,
 DX_PS_FEATURE(OFF),
 DX_PDF_FEATURE(OFF),
 DX_RTF_FEATURE(OFF),
@@ -300,10 +300,10 @@ AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 AC_CONFIG_FILES([Makefile
 doc/Makefile
 src/Makefile
-src/util/Makefile
-src/stasis/Makefile
-src/backend/Makefile
 src/include/Makefile
 src/lib/Makefile
+src/sync/Makefile
+src/syncdb/Makefile
+src/util/Makefile
 ])
 AC_OUTPUT
