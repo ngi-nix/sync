@@ -29,7 +29,7 @@
 /**
  * Private key identifying an account.
  */
-struct SYNC_AccountPrivateKey
+struct SYNC_AccountPrivateKeyP
 {
   /**
    * We use EdDSA.
@@ -41,7 +41,7 @@ struct SYNC_AccountPrivateKey
 /**
  * Public key identifying an account.
  */
-struct SYNC_AccountPublicKey
+struct SYNC_AccountPublicKeyP
 {
   /**
    * We use EdDSA.
@@ -53,7 +53,7 @@ struct SYNC_AccountPublicKey
 /**
  * Signature made with an account's public key.
  */
-struct SYNC_AccountSignature
+struct SYNC_AccountSignatureP
 {
   /**
    * We use EdDSA.

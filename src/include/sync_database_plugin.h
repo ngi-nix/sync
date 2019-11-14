@@ -126,8 +126,8 @@ struct SYNC_DatabasePlugin
    */
   enum SYNC_DB_QueryStatus
   (*store_backup_TR)(void *cls,
-                     const struct SYNC_AccountPublicKey *account_pub,
-                     const struct SYNC_AccountSignature *account_sig,
+                     const struct SYNC_AccountPublicKeyP *account_pub,
+                     const struct SYNC_AccountSignatureP *account_sig,
                      const struct GNUNET_HashCode *backup_hash,
                      size_t backup_size,
                      const void *backup);
@@ -146,9 +146,9 @@ struct SYNC_DatabasePlugin
    */
   enum SYNC_DB_QueryStatus
   (*update_backup_TR)(void *cls,
-                      const struct SYNC_AccountPublicKey *account_pub,
+                      const struct SYNC_AccountPublicKeyP *account_pub,
                       const struct GNUNET_HashCode *old_backup_hash,
-                      const struct SYNC_AccountSignature *account_sig,
+                      const struct SYNC_AccountSignatureP *account_sig,
                       const struct GNUNET_HashCode *backup_hash,
                       size_t backup_size,
                       const void *backup);
@@ -165,8 +165,8 @@ struct SYNC_DatabasePlugin
    */
   enum SYNC_DB_QueryStatus
   (*lookup_backup_TR)(void *cls,
-                      const struct SYNC_AccountPublicKey *account_pub,
-                      struct SYNC_AccountSignature *account_sig,
+                      const struct SYNC_AccountPublicKeyP *account_pub,
+                      struct SYNC_AccountSignatureP *account_sig,
                       struct GNUNET_HashCode *backup_hash,
                       size_t *backup_size,
                       void **backup);
@@ -181,7 +181,7 @@ struct SYNC_DatabasePlugin
    */
   enum SYNC_DB_QueryStatus
   (*increment_lifetime_TR)(void *cls,
-                           const struct SYNC_AccountPublicKey *account_pub,
+                           const struct SYNC_AccountPublicKeyP *account_pub,
                            struct GNUNET_TIME_Relative lifetime);
 
 };

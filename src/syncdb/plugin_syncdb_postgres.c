@@ -249,8 +249,8 @@ postgres_gc (void *cls,
  */
 static enum SYNC_DB_QueryStatus
 postgres_store_backup (void *cls,
-                       const struct SYNC_AccountPublicKey *account_pub,
-                       const struct SYNC_AccountSignature *account_sig,
+                       const struct SYNC_AccountPublicKeyP *account_pub,
+                       const struct SYNC_AccountSignatureP *account_sig,
                        const struct GNUNET_HashCode *backup_hash,
                        size_t backup_size,
                        const void *backup)
@@ -387,9 +387,9 @@ postgres_store_backup (void *cls,
  */
 static enum SYNC_DB_QueryStatus
 postgres_update_backup (void *cls,
-                        const struct SYNC_AccountPublicKey *account_pub,
+                        const struct SYNC_AccountPublicKeyP *account_pub,
                         const struct GNUNET_HashCode *old_backup_hash,
-                        const struct SYNC_AccountSignature *account_sig,
+                        const struct SYNC_AccountSignatureP *account_sig,
                         const struct GNUNET_HashCode *backup_hash,
                         size_t backup_size,
                         const void *backup)
@@ -531,8 +531,8 @@ postgres_update_backup (void *cls,
  */
 static enum SYNC_DB_QueryStatus
 postgres_lookup_backup (void *cls,
-                        const struct SYNC_AccountPublicKey *account_pub,
-                        struct SYNC_AccountSignature *account_sig,
+                        const struct SYNC_AccountPublicKeyP *account_pub,
+                        struct SYNC_AccountSignatureP *account_sig,
                         struct GNUNET_HashCode *backup_hash,
                         size_t *backup_size,
                         void **backup)
@@ -588,7 +588,7 @@ postgres_lookup_backup (void *cls,
  */
 static enum SYNC_DB_QueryStatus
 postgres_increment_lifetime (void *cls,
-                             const struct SYNC_AccountPublicKey *account_pub,
+                             const struct SYNC_AccountPublicKeyP *account_pub,
                              struct GNUNET_TIME_Relative lifetime)
 {
   struct PostgresClosure *pg = cls;
@@ -753,14 +753,14 @@ libsync_plugin_db_postgres_init (void *cls)
                             "SELECT"
                             " expiration_date "
                             "FROM"
-                            " account"
+                            " accounts "
                             "WHERE"
                             " account_pub=$1;",
                             1),
     GNUNET_PQ_make_prepare ("gc",
                             "DELETE FROM accounts "
                             "WHERE"
-                            " expiration_data<$1;",
+                            " expiration_date < $1;",
                             1),
     GNUNET_PQ_make_prepare ("backup_insert",
                             "INSERT INTO backups "
@@ -780,15 +780,13 @@ libsync_plugin_db_postgres_init (void *cls)
                             " WHERE"
                             "   account_pub=$4"
                             "  AND"
-                            "   backup_hash=$5"
-                            ") VALUES "
-                            "($1,$2,$3,$4,$5);",
+                            "   backup_hash=$5;",
                             5),
     GNUNET_PQ_make_prepare ("backup_select_hash",
                             "SELECT "
-                            " backup_hash"
+                            " backup_hash "
                             "FROM"
-                            " backups"
+                            " backups "
                             "WHERE"
                             " account_pub=$1;",
                             1),
@@ -796,9 +794,9 @@ libsync_plugin_db_postgres_init (void *cls)
                             "SELECT "
                             " account_sig"
                             ",backup_hash"
-                            ",data"
+                            ",data "
                             "FROM"
-                            " backups"
+                            " backups "
                             "WHERE"
                             " account_pub=$1;",
                             1),

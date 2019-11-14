@@ -61,3 +61,5 @@ src/include/Makefile.in
 A
 A
 
+sync_config.h
+sync_config.h.in

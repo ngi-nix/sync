@@ -1,0 +1,4 @@
+test_sync_db-postgres
+.deps
+.libs
+test-suite.log

@@ -22,10 +22,9 @@
 #include "platform.h"
 #include <gnunet/gnunet_util_lib.h>
 #include <taler/taler_util.h>
+#include "sync_service.h"
 #include "sync_database_plugin.h"
 #include "sync_database_lib.h"
-#include "sync_error_codes.h"
-#include <uuid/uuid.h>
 
 
 #define FAILIF(cond)                            \
@@ -52,7 +51,7 @@ static struct SYNC_DatabasePlugin *plugin;
 /**
  * User public key, set to a random value
  */
-static struct SYNC_AccountPubP accountPubP;
+static struct SYNC_AccountPublicKeyP accountPubP;
 
 
 /**
@@ -85,6 +84,7 @@ run (void *cls)
   }
 
   // FIXME: test logic here!
+  result = 0;
 
   GNUNET_break (GNUNET_OK ==
                 plugin->drop_tables (plugin->cls));
