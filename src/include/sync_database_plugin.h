@@ -38,7 +38,7 @@ enum SYNC_DB_QueryStatus
   SYNC_DB_OLD_BACKUP_MISSMATCH = -4,
 
   /**
-   * Account is unpaid.
+   * Account is unpaid / does not exist.
    */
   SYNC_DB_PAYMENT_REQUIRED = -3,
 
@@ -153,12 +153,28 @@ struct SYNC_DatabasePlugin
                       size_t backup_size,
                       const void *backup);
 
+
+  /**
+   * Lookup an account and associated backup meta data.
+   *
+   * @param cls closure
+   * @param account_pub account to store @a backup under
+   * @param backup_hash[OUT] set to hash of @a backup
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*lookup_account_TR)(void *cls,
+                       const struct SYNC_AccountPublicKeyP *account_pub,
+                       struct GNUNET_HashCode *backup_hash);
+
+
   /**
    * Obtain backup.
    *
    * @param cls closure
    * @param account_pub account to store @a backup under
    * @param account_sig[OUT] set to signature affirming storage request
+   * @param prev_hash[OUT] set to hash of the previous @a backup (all zeros if none)
    * @param backup_hash[OUT] set to hash of @a backup
    * @param backup_size[OUT] set to number of bytes in @a backup
    * @param backup[OUT] set to raw data to backup, caller MUST FREE
@@ -167,6 +183,7 @@ struct SYNC_DatabasePlugin
   (*lookup_backup_TR)(void *cls,
                       const struct SYNC_AccountPublicKeyP *account_pub,
                       struct SYNC_AccountSignatureP *account_sig,
+                      struct GNUNET_HashCode *prev_hash,
                       struct GNUNET_HashCode *backup_hash,
                       size_t *backup_size,
                       void **backup);

@@ -46,7 +46,7 @@ struct SYNC_AccountPublicKeyP
   /**
    * We use EdDSA.
    */
-  struct GNUNET_CRYPTO_EddsaPrivateKey eddsa_priv;
+  struct GNUNET_CRYPTO_EddsaPublicKey eddsa_pub;
 };
 
 

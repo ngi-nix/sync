@@ -175,7 +175,10 @@ url_handler (void *cls,
   struct TM_HandlerContext *hc;
   struct GNUNET_AsyncScopeId aid;
   const char *correlation_id = NULL;
+  struct SYNC_AccountPublicKeyP account_pub;
 
+  (void) cls;
+  (void) version;
   hc = *con_cls;
 
   if (NULL == hc)
@@ -197,7 +200,6 @@ url_handler (void *cls,
   {
     aid = hc->async_scope_id;
   }
-
   GNUNET_SCHEDULER_begin_async_scope (&aid);
 
   if (NULL != correlation_id)
@@ -211,22 +213,25 @@ url_handler (void *cls,
                 "Handling request (%s) for URL '%s'\n",
                 method,
                 url);
-  if (0 == strncmp (url,
-                    "/backup/",
-                    strlen ("/backup/")))
+
+  if (GNUNET_OK ==
+      GNUNET_CRYPTO_eddsa_public_key_from_string (url,
+                                                  strlen (url),
+                                                  &account_pub.eddsa_pub))
   {
-    // return handle_policy (...);
-    if (0 == strcmp (method, MHD_HTTP_METHOD_GET))
+    if (0 == strcasecmp (method,
+                         MHD_HTTP_METHOD_GET))
     {
       return sync_handler_backup_get (connection,
-                                      url,
+                                      &account_pub,
                                       con_cls);
     }
-    if (0 == strcmp (method, MHD_HTTP_METHOD_POST))
+    if (0 == strcasecmp (method,
+                         MHD_HTTP_METHOD_POST))
     {
       return sync_handler_backup_post (connection,
                                        con_cls,
-                                       url,
+                                       &account_pub,
                                        upload_data,
                                        upload_data_size);
     }
@@ -238,8 +243,8 @@ url_handler (void *cls,
     if ( (0 == strcmp (url,
                        rh->url)) &&
          ( (NULL == rh->method) ||
-           (0 == strcmp (method,
-                         rh->method)) ) )
+           (0 == strcasecmp (method,
+                             rh->method)) ) )
     {
       int ret;
 

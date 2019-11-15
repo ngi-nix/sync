@@ -24,20 +24,20 @@
 
 /**
  * @param connection the MHD connection to handle
- * @param[in,out] connection_cls the connection's closure (can be updated)
- * @param upload_data upload data
- * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
+ * @param account public key of the account the request is for
+ * @param[in,out] con_cls the connection's closure (can be updated)
  * @return MHD result code
  */
 int
 sync_handler_backup_get (struct MHD_Connection *connection,
-                         const char *url,
+                         const struct SYNC_AccountPublicKeyP *account,
                          void **con_cls);
 
 
 /**
  * @param connection the MHD connection to handle
  * @param[in,out] connection_cls the connection's closure (can be updated)
+ * @param account public key of the account the request is for
  * @param upload_data upload data
  * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
  * @return MHD result code
@@ -45,7 +45,7 @@ sync_handler_backup_get (struct MHD_Connection *connection,
 int
 sync_handler_backup_post (struct MHD_Connection *connection,
                           void **con_cls,
-                          const char *url,
+                          const struct SYNC_AccountPublicKeyP *account,
                           const char *upload_data,
                           size_t *upload_data_size);
 

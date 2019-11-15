@@ -258,6 +258,7 @@ postgres_store_backup (void *cls,
   struct PostgresClosure *pg = cls;
   enum GNUNET_DB_QueryStatus qs;
   struct GNUNET_HashCode bh;
+  static struct GNUNET_HashCode no_previous_hash;
 
   check_connection (pg);
   postgres_preflight (pg);
@@ -265,6 +266,7 @@ postgres_store_backup (void *cls,
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (account_pub),
       GNUNET_PQ_query_param_auto_from_type (account_sig),
+      GNUNET_PQ_query_param_auto_from_type (&no_previous_hash),
       GNUNET_PQ_query_param_auto_from_type (backup_hash),
       GNUNET_PQ_query_param_fixed_size (backup,
                                         backup_size),
@@ -404,6 +406,7 @@ postgres_update_backup (void *cls,
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (backup_hash),
       GNUNET_PQ_query_param_auto_from_type (account_sig),
+      GNUNET_PQ_query_param_auto_from_type (old_backup_hash),
       GNUNET_PQ_query_param_fixed_size (backup,
                                         backup_size),
       GNUNET_PQ_query_param_auto_from_type (account_pub),
@@ -520,11 +523,96 @@ postgres_update_backup (void *cls,
 
 
 /**
+ * Lookup an account and associated backup meta data.
+ *
+ * @param cls closure
+ * @param account_pub account to store @a backup under
+ * @param backup_hash[OUT] set to hash of @a backup
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_lookup_account (void *cls,
+                         const struct SYNC_AccountPublicKeyP *account_pub,
+                         struct GNUNET_HashCode *backup_hash)
+{
+  struct PostgresClosure *pg = cls;
+  enum GNUNET_DB_QueryStatus qs;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_auto_from_type (account_pub),
+    GNUNET_PQ_query_param_end
+  };
+
+  check_connection (pg);
+  postgres_preflight (pg);
+  {
+    struct GNUNET_PQ_ResultSpec rs[] = {
+      GNUNET_PQ_result_spec_auto_from_type ("backup_hash",
+                                            backup_hash),
+      GNUNET_PQ_result_spec_end
+    };
+
+    qs = GNUNET_PQ_eval_prepared_singleton_select (pg->conn,
+                                                   "backup_select_hash",
+                                                   params,
+                                                   rs);
+  }
+  switch (qs)
+  {
+  case GNUNET_DB_STATUS_HARD_ERROR:
+    return SYNC_DB_HARD_ERROR;
+  case GNUNET_DB_STATUS_SOFT_ERROR:
+    GNUNET_break (0);
+    return SYNC_DB_SOFT_ERROR;
+  case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
+    break; /* handle interesting case below */
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
+    return SYNC_DB_ONE_RESULT;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
+  }
+
+  /* check if account exists */
+  {
+    struct GNUNET_TIME_Absolute expiration;
+    struct GNUNET_PQ_ResultSpec rs[] = {
+      GNUNET_PQ_result_spec_auto_from_type ("expiration_date",
+                                            &expiration),
+      GNUNET_PQ_result_spec_end
+    };
+
+    qs = GNUNET_PQ_eval_prepared_singleton_select (pg->conn,
+                                                   "account_select",
+                                                   params,
+                                                   rs);
+  }
+  switch (qs)
+  {
+  case GNUNET_DB_STATUS_HARD_ERROR:
+    return SYNC_DB_HARD_ERROR;
+  case GNUNET_DB_STATUS_SOFT_ERROR:
+    GNUNET_break (0);
+    return SYNC_DB_SOFT_ERROR;
+  case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
+    /* indicates: no account */
+    return SYNC_DB_PAYMENT_REQUIRED;
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
+    /* indicates: no backup */
+    return SYNC_DB_NO_RESULTS;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
+  }
+}
+
+
+/**
  * Obtain backup.
  *
  * @param cls closure
  * @param account_pub account to store @a backup under
  * @param account_sig[OUT] set to signature affirming storage request
+ * @param prev_hash[OUT] set to hash of previous @a backup, all zeros if none
  * @param backup_hash[OUT] set to hash of @a backup
  * @param backup_size[OUT] set to number of bytes in @a backup
  * @param backup[OUT] set to raw data to backup, caller MUST FREE
@@ -533,6 +621,7 @@ static enum SYNC_DB_QueryStatus
 postgres_lookup_backup (void *cls,
                         const struct SYNC_AccountPublicKeyP *account_pub,
                         struct SYNC_AccountSignatureP *account_sig,
+                        struct GNUNET_HashCode *prev_hash,
                         struct GNUNET_HashCode *backup_hash,
                         size_t *backup_size,
                         void **backup)
@@ -546,6 +635,8 @@ postgres_lookup_backup (void *cls,
   struct GNUNET_PQ_ResultSpec rs[] = {
     GNUNET_PQ_result_spec_auto_from_type ("account_sig",
                                           account_sig),
+    GNUNET_PQ_result_spec_auto_from_type ("prev_hash",
+                                          prev_hash),
     GNUNET_PQ_result_spec_auto_from_type ("backup_hash",
                                           backup_hash),
     GNUNET_PQ_result_spec_variable_size ("data",
@@ -724,6 +815,7 @@ libsync_plugin_db_postgres_init (void *cls)
                             "("
                             "account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub),"
                             "account_sig BYTEA NOT NULL CHECK (length(account_sig)=64),"
+                            "prev_hash BYTEA NOT NULL CHECK (length(prev_hash)=64),"
                             "backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64),"
                             "data BYTEA NOT NULL"
                             ");"),
@@ -766,22 +858,24 @@ libsync_plugin_db_postgres_init (void *cls)
                             "INSERT INTO backups "
                             "(account_pub"
                             ",account_sig"
+                            ",prev_hash"
                             ",backup_hash"
                             ",data"
                             ") VALUES "
-                            "($1,$2,$3,$4);",
-                            4),
+                            "($1,$2,$3,$4,$5);",
+                            5),
     GNUNET_PQ_make_prepare ("backup_update",
                             "UPDATE backups "
                             " SET"
                             " backup_hash=$1"
                             ",account_sig=$2"
-                            ",data=$3"
+                            ",prev_hash=$3"
+                            ",data=$4"
                             " WHERE"
-                            "   account_pub=$4"
+                            "   account_pub=$5"
                             "  AND"
-                            "   backup_hash=$5;",
-                            5),
+                            "   backup_hash=$6;",
+                            6),
     GNUNET_PQ_make_prepare ("backup_select_hash",
                             "SELECT "
                             " backup_hash "
@@ -793,6 +887,7 @@ libsync_plugin_db_postgres_init (void *cls)
     GNUNET_PQ_make_prepare ("backup_select",
                             "SELECT "
                             " account_sig"
+                            ",prev_hash"
                             ",backup_hash"
                             ",data "
                             "FROM"
@@ -822,6 +917,7 @@ libsync_plugin_db_postgres_init (void *cls)
   plugin->drop_tables = &postgres_drop_tables;
   plugin->gc = &postgres_gc;
   plugin->store_backup_TR = &postgres_store_backup;
+  plugin->lookup_account_TR = &postgres_lookup_account;
   plugin->lookup_backup_TR = &postgres_lookup_backup;
   plugin->update_backup_TR = &postgres_update_backup;
   plugin->increment_lifetime_TR = &postgres_increment_lifetime;
