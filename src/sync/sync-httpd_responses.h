@@ -30,7 +30,6 @@
 #include <gnunet/gnunet_util_lib.h>
 
 
-
 /**
  * Make JSON response object.
  *
@@ -65,8 +64,6 @@ SH_RESPONSE_reply_json (struct MHD_Connection *connection,
 struct MHD_Response *
 SH_RESPONSE_make_json_pack (const char *fmt,
                             ...);
-
-
 
 
 /**
@@ -112,8 +109,6 @@ SH_RESPONSE_reply_internal_error (struct MHD_Connection *connection,
                                   const char *hint);
 
 
-
-
 /**
  * Send a response indicating that the request was too big.
  *
@@ -122,7 +117,6 @@ SH_RESPONSE_reply_internal_error (struct MHD_Connection *connection,
  */
 int
 SH_RESPONSE_reply_request_too_large (struct MHD_Connection *connection);
-
 
 
 /**
@@ -142,7 +136,6 @@ SH_RESPONSE_reply_rc (struct MHD_Connection *connection,
                       const char *msg);
 
 
-
 /**
  * Send a response indicating that the JSON was malformed.
  *
@@ -151,7 +144,6 @@ SH_RESPONSE_reply_rc (struct MHD_Connection *connection,
  */
 int
 SH_RESPONSE_reply_invalid_json (struct MHD_Connection *connection);
-
 
 
 /**
@@ -169,7 +161,6 @@ SH_RESPONSE_reply_not_found (struct MHD_Connection *connection,
                              const char *object);
 
 
-
 /**
  * Send a response indicating that the request was malformed.
  *
@@ -184,8 +175,6 @@ SH_RESPONSE_reply_bad_request (struct MHD_Connection *connection,
                                const char *issue);
 
 
-
-
 /**
  * Add headers we want to return in every response.
  * Useful for testing, like if we want to always close
@@ -195,7 +184,6 @@ SH_RESPONSE_reply_bad_request (struct MHD_Connection *connection,
  */
 void
 SH_RESPONSE_add_global_headers (struct MHD_Response *response);
-
 
 
 /**
@@ -210,8 +198,6 @@ int
 SH_RESPONSE_reply_external_error (struct MHD_Connection *connection,
                                   enum TALER_ErrorCode ec,
                                   const char *hint);
-
-
 
 
 /**

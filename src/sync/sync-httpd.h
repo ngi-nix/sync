@@ -115,11 +115,6 @@ struct TM_HandlerContext
   TM_ContextCleanup cc;
 
   /**
-   * Which request handler is handling this request?
-   */
-  const struct SH_RequestHandler *rh;
-
-  /**
    * Asynchronous request context id.
    */
   struct GNUNET_AsyncScopeId async_scope_id;
@@ -147,6 +142,21 @@ extern unsigned long long SH_upload_limit_mb;
 extern struct TALER_Amount SH_annual_fee;
 
 /**
+ * Our Taler backend to process payments.
+ */
+extern char *MH_backend_url;
+
+/**
+ * Our own base URL
+ */
+extern char *MH_my_base_url;
+
+/**
+ * Our context for making HTTP requests.
+ */
+extern struct GNUNET_CURL_Context *MH_ctx;
+
+/**
  * Kick MHD to run now, to be called after MHD_resume_connection().
  * Basically, we need to explicitly resume MHD's event loop whenever
  * we made progress serving a request.  This function re-schedules
@@ -154,5 +164,6 @@ extern struct TALER_Amount SH_annual_fee;
  */
 void
 SH_trigger_daemon (void);
+
 
 #endif

@@ -50,6 +50,36 @@ struct SYNC_AccountPublicKeyP
 };
 
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+
+/**
+ * Data signed by the account public key of a sync client to
+ * authorize the upload of the backup.
+ */
+struct SYNC_UploadSignaturePS
+{
+  /**
+   * Set to #TALER_SIGNATURE_SYNC_BACKUP_UPLOAD.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Hash of the previous backup, all zeros for none.
+   */
+  struct GNUNET_HashCode old_backup_hash GNUNET_PACKED;
+
+  /**
+   * Hash of the new backup.
+   */
+  struct GNUNET_HashCode new_backup_hash GNUNET_PACKED;
+
+};
+
+
+GNUNET_NETWORK_STRUCT_END
+
+
 /**
  * Signature made with an account's public key.
  */

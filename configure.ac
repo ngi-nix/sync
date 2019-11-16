@@ -46,6 +46,28 @@ CFLAGS="-Wall $CFLAGS"
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h unistd.h])
 
+
+# Check for Taler's libtalermerchant
+libtalermerchant=0
+AC_MSG_CHECKING([for libtalermerchant])
+AC_ARG_WITH(merchant,
+            [AS_HELP_STRING([--with-merchant=PFX], [base of Taler MERCHANT installation])],
+            [AC_MSG_RESULT([given as $with_merchant])],
+            [AC_MSG_RESULT(not given)
+             with_merchant=yes])
+AS_CASE([$with_merchant],
+        [yes], [],
+        [no], [AC_MSG_ERROR([--with-merchant is required])],
+        [LDFLAGS="-L$with_merchant/lib $LDFLAGS"
+         CPPFLAGS="-I$with_merchant/include $CPPFLAGS $POSTGRESQL_CPPFLAGS"])
+
+AC_CHECK_HEADERS([taler/taler_merchant_service.h],
+ [AC_CHECK_LIB([talermerchant], [TALER_MERCHANT_poll_payment], libtalermerchant=1)],
+   [], [#ifdef HAVE_TALER_PLATFORM_H
+        #include <taler/platform.h>
+       #endif])
+
+
 # Check for GNUnet's libgnunetutil.
 libgnunetutil=0
 AC_MSG_CHECKING([for libgnunetutil])
@@ -101,6 +123,9 @@ AC_CHECK_HEADERS([gnunet/gnunet_pq_lib.h],
         #include <gnunet/platform.h>
        #endif])
 AM_CONDITIONAL(HAVE_GNUNETPQ, test x$libgnunetpq = x1)
+
+
+
 
 # check for libmicrohttpd
 microhttpd=0

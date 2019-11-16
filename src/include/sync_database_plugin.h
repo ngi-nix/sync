@@ -65,6 +65,24 @@ enum SYNC_DB_QueryStatus
 
 
 /**
+ * Function called on all pending payments.
+ *
+ * @param cls closure
+ * @param account_pub which account is the order for
+ * @param timestamp for how long have we been waiting
+ * @param order_id order id in the backend
+ * @param amount how much is the order for
+ */
+typedef void
+(*SYNC_DB_PaymentPendingIterator)(void *cls,
+                                  const struct
+                                  SYNC_AccountPublicKeyP *account_pub,
+                                  struct GNUNET_TIME_Absolute timestamp,
+                                  const char *order_id,
+                                  const struct TALER_Amount *amount);
+
+
+/**
  * Handle to interact with the database.
  *
  * Functions ending with "_TR" run their OWN transaction scope
@@ -104,12 +122,16 @@ struct SYNC_DatabasePlugin
    * truth and financial records older than @a fin_expire.
    *
    * @param cls closure
-   * @param expire backups older than the given time stamp should be garbage collected
+   * @param expire_backups backups older than the given time stamp should be garbage collected
+   * @param expire_pending_payments payments still pending from since before
+   *            this value should be garbage collected
    * @return transaction status
    */
   enum SYNC_DB_QueryStatus
   (*gc)(void *cls,
-        struct GNUNET_TIME_Absolute expire);
+        struct GNUNET_TIME_Absolute expire,
+        struct GNUNET_TIME_Absolute expire_pending_payments);
+
 
   /**
    * Store backup. Only applicable for the FIRST backup under
@@ -131,6 +153,55 @@ struct SYNC_DatabasePlugin
                      const struct GNUNET_HashCode *backup_hash,
                      size_t backup_size,
                      const void *backup);
+
+
+  /**
+   * Store payment. Used to begin a payment, not indicative
+   * that the payment actually was made. (That is done
+   * when we increment the account's lifetime.)
+   *
+   * @param cls closure
+   * @param account_pub account to store @a backup under
+   * @param order_id order we created
+   * @param amount how much we asked for
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*store_payment_TR)(void *cls,
+                      const struct SYNC_AccountPublicKeyP *account_pub,
+                      const char *order_id,
+                      const struct TALER_Amount *amount);
+
+
+  /**
+   * Lookup pending payments.
+   *
+   * @param cls closure
+   * @param it iterator to call on all pending payments
+   * @param it_cls closure for @a it
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*lookup_pending_payments_TR)(void *cls,
+                                SYNC_DB_PaymentPendingIterator it,
+                                void *it_cls);
+
+
+  /**
+   * Lookup pending payments by account.
+   *
+   * @param cls closure
+   * @param account_pub account to look for pending payments under
+   * @param it iterator to call on all pending payments
+   * @param it_cls closure for @a it
+   * @return transaction status
+   */
+  enum SYNC_DB_QueryStatus
+  (*lookup_pending_payments_by_account_TR)(void *cls,
+                                           const struct
+                                           SYNC_AccountPublicKeyP *account_pub,
+                                           SYNC_DB_PaymentPendingIterator it,
+                                           void *it_cls);
 
   /**
    * Update backup.
@@ -189,16 +260,19 @@ struct SYNC_DatabasePlugin
                       void **backup);
 
   /**
-   * Increment account lifetime.
+   * Increment account lifetime and mark the associated payment
+   * as successful.
    *
    * @param cls closure
    * @param account_pub which account received a payment
+   * @param order_id order which was paid, must be unique and match pending payment
    * @param lifetime for how long is the account now paid (increment)
    * @return transaction status
    */
   enum SYNC_DB_QueryStatus
   (*increment_lifetime_TR)(void *cls,
                            const struct SYNC_AccountPublicKeyP *account_pub,
+                           const char *order_id,
                            struct GNUNET_TIME_Relative lifetime);
 
 };

@@ -63,6 +63,7 @@ postgres_drop_tables (void *cls)
   struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_ExecuteStatement es[] = {
     GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS accounts CASCADE;"),
+    GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS payments;"),
     GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS backups;"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
@@ -212,25 +213,95 @@ commit_transaction (void *cls)
  * truth and financial records older than @a fin_expire.
  *
  * @param cls closure
- * @param expire backups older than the given time stamp should be garbage collected
+ * @param expire_backups backups older than the given time stamp should be garbage collected
+ * @param expire_pending_payments payments still pending from since before
+ *            this value should be garbage collected
  * @return transaction status
  */
 static enum SYNC_DB_QueryStatus
 postgres_gc (void *cls,
-             struct GNUNET_TIME_Absolute expire)
+             struct GNUNET_TIME_Absolute expire_backups,
+             struct GNUNET_TIME_Absolute expire_pending_payments)
 {
   struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_QueryParam params[] = {
-    TALER_PQ_query_param_absolute_time (&expire),
+    TALER_PQ_query_param_absolute_time (&expire_backups),
     GNUNET_PQ_query_param_end
   };
+  struct GNUNET_PQ_QueryParam params2[] = {
+    TALER_PQ_query_param_absolute_time (&expire_pending_payments),
+    GNUNET_PQ_query_param_end
+  };
+  enum SYNC_DB_QueryStatus qs;
 
   check_connection (pg);
   postgres_preflight (pg);
-  return (enum SYNC_DB_QueryStatus)
-         GNUNET_PQ_eval_prepared_non_select (pg->conn,
-                                             "gc",
-                                             params);
+  qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
+                                           "gc_accounts",
+                                           params);
+  if (qs < 0)
+    return qs;
+  return GNUNET_PQ_eval_prepared_non_select (pg->conn,
+                                             "gc_pending_payments",
+                                             params2);
+}
+
+
+/**
+ * Store payment. Used to begin a payment, not indicative
+ * that the payment actually was made. (That is done
+ * when we increment the account's lifetime.)
+ *
+ * @param cls closure
+ * @param account_pub account to store @a backup under
+ * @param order_id order we created
+ * @param amount how much we asked for
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_store_payment (void *cls,
+                        const struct SYNC_AccountPublicKeyP *account_pub,
+                        const char *order_id,
+                        const struct TALER_Amount *amount)
+{
+  // FIXME: use payment_insert
+}
+
+
+/**
+ * Lookup pending payments.
+ *
+ * @param cls closure
+ * @param it iterator to call on all pending payments
+ * @param it_cls closure for @a it
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_lookup_pending_payments (void *cls,
+                                  SYNC_DB_PaymentPendingIterator it,
+                                  void *it_cls)
+{
+  // FIXME: use payments_select
+}
+
+
+/**
+ * Lookup pending payments by account.
+ *
+ * @param cls closure
+ * @param account_pub account to look for pending payments under
+ * @param it iterator to call on all pending payments
+ * @param it_cls closure for @a it
+ * @return transaction status
+ */
+static enum SYNC_DB_QueryStatus
+postgres_lookup_pending_payments_by_account (void *cls,
+                                             const struct
+                                             SYNC_AccountPublicKeyP *account_pub,
+                                             SYNC_DB_PaymentPendingIterator it,
+                                             void *it_cls)
+{
+  // FIXME: use payments_select_by_account
 }
 
 
@@ -674,12 +745,14 @@ postgres_lookup_backup (void *cls,
  *
  * @param cls closure
  * @param account_pub which account received a payment
+ * @param order_id order which was paid, must be unique and match pending payment
  * @param lifetime for how long is the account now paid (increment)
  * @return transaction status
  */
 static enum SYNC_DB_QueryStatus
 postgres_increment_lifetime (void *cls,
                              const struct SYNC_AccountPublicKeyP *account_pub,
+                             const char *order_id,
                              struct GNUNET_TIME_Relative lifetime)
 {
   struct PostgresClosure *pg = cls;
@@ -694,6 +767,25 @@ postgres_increment_lifetime (void *cls,
     GNUNET_break (0);
     return GNUNET_DB_STATUS_HARD_ERROR;
   }
+
+  {
+    struct GNUNET_PQ_QueryParam params[] = {
+      GNUNET_PQ_query_param_string (order_id),
+      GNUNET_PQ_query_param_auto_from_type (account_pub),
+      GNUNET_PQ_query_param_end
+    };
+
+    qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
+                                             "payment_done",
+                                             params);
+    if (0 >= qs)
+    {
+      /* payment made before, or unknown, or error => no further action! */
+      rollback (pg);
+      return qs;
+    }
+  }
+
   {
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (account_pub),
@@ -807,32 +899,61 @@ libsync_plugin_db_postgres_init (void *cls)
        The contract terms will change (nonce will be added) when moved to the
        contract terms table */
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS accounts"
-                            "("
-                            "account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32),"
-                            "expiration_date INT8 NOT NULL"
+                            "(account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32)"
+                            ",expiration_date INT8 NOT NULL"
+                            ");"),
+    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS payments"
+                            "(account_pub BYTEA CHECK (length(account_pub)=32),"
+                            ",order_id VARCHAR PRIMARY KEY"
+                            ",timestamp INT8 NOT NULL"
+                            ",amount_val INT8 NOT NULL" /* amount we were paid */
+                            ",amount_frac INT4 NOT NULL"
+                            ",paid BOOLEAN NOT NULL DEFAULT FALSE"
                             ");"),
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS backups"
-                            "("
-                            "account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub),"
-                            "account_sig BYTEA NOT NULL CHECK (length(account_sig)=64),"
-                            "prev_hash BYTEA NOT NULL CHECK (length(prev_hash)=64),"
-                            "backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64),"
-                            "data BYTEA NOT NULL"
+                            "(account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub)"
+                            ",account_sig BYTEA NOT NULL CHECK (length(account_sig)=64)"
+                            ",prev_hash BYTEA NOT NULL CHECK (length(prev_hash)=64)"
+                            ",backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64)"
+                            ",data BYTEA NOT NULL"
                             ");"),
     /* index for gc */
     GNUNET_PQ_make_try_execute (
       "CREATE INDEX accounts_expire ON "
       "accounts (expiration_date);"),
+    GNUNET_PQ_make_try_execute (
+      "CREATE INDEX payments_timestamp ON "
+      "payments (paid,timestamp);"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
   struct GNUNET_PQ_PreparedStatement ps[] = {
     GNUNET_PQ_make_prepare ("account_insert",
                             "INSERT INTO accounts "
-                            "("
-                            "account_pub,"
-                            "expiration_date"
+                            "(account_pub,"
+                            ",expiration_date"
                             ") VALUES "
                             "($1,$2);",
+                            2),
+    GNUNET_PQ_make_prepare ("payment_insert",
+                            "INSERT INTO payments "
+                            "(account_pub"
+                            ",order_id"
+                            ",timestamp"
+                            ",amount_val"
+                            ",amount_frac"
+                            ") VALUES "
+                            "($1,$2,$3,$4,$5);",
+                            5),
+    GNUNET_PQ_make_prepare ("payment_done",
+                            "UPDATE payments "
+                            "SET"
+                            " paid=TRUE "
+                            "WHERE"
+                            "  order_id=$1"
+                            " AND"
+                            "  account_pub=$2"
+                            " AND"
+                            "  paid=FALSE;",
                             2),
     GNUNET_PQ_make_prepare ("account_update",
                             "UPDATE accounts "
@@ -849,10 +970,40 @@ libsync_plugin_db_postgres_init (void *cls)
                             "WHERE"
                             " account_pub=$1;",
                             1),
-    GNUNET_PQ_make_prepare ("gc",
+    GNUNET_PQ_make_prepare ("payments_select",
+                            "SELECT"
+                            " account_pub"
+                            ",order_id"
+                            ",amount_val"
+                            ",amount_frac"
+                            "FROM"
+                            " payments "
+                            "WHERE"
+                            " paid=FALSE;",
+                            0),
+    GNUNET_PQ_make_prepare ("payments_select_by_account",
+                            "SELECT"
+                            " order_id"
+                            ",amount_val"
+                            ",amount_frac"
+                            "FROM"
+                            " payments "
+                            "WHERE"
+                            "  paid=FALSE"
+                            " AND"
+                            "  account_pub=$1;",
+                            1),
+    GNUNET_PQ_make_prepare ("gc_accounts",
                             "DELETE FROM accounts "
                             "WHERE"
                             " expiration_date < $1;",
+                            1),
+    GNUNET_PQ_make_prepare ("gc_accounts",
+                            "DELETE FROM payments "
+                            "WHERE"
+                            "  paid=FALSE"
+                            " AND"
+                            "  timestamp < $1;",
                             1),
     GNUNET_PQ_make_prepare ("backup_insert",
                             "INSERT INTO backups "
@@ -916,6 +1067,10 @@ libsync_plugin_db_postgres_init (void *cls)
   plugin->cls = pg;
   plugin->drop_tables = &postgres_drop_tables;
   plugin->gc = &postgres_gc;
+  plugin->store_payment_TR = &postgres_store_payment;
+  plugin->lookup_pending_payments_TR = &postgres_lookup_pending_payments;
+  plugin->lookup_pending_payments_by_account_TR =
+    &postgres_lookup_pending_payments_by_account;
   plugin->store_backup_TR = &postgres_store_backup;
   plugin->lookup_account_TR = &postgres_lookup_account;
   plugin->lookup_backup_TR = &postgres_lookup_backup;

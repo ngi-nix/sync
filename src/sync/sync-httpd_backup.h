@@ -23,15 +23,39 @@
 #include <microhttpd.h>
 
 /**
+ * Service is shutting down, resume all MHD connections NOW.
+ */
+void
+SH_resume_all_bc (void);
+
+
+/**
+ * Return the current backup of @a account on @a connection
+ * using @a default_http_status on success.
+ *
+ * @param connection MHD connection to use
+ * @param account account to query
+ * @param default_http_status HTTP status to queue response
+ *  with on success (#MHD_HTTP_OK or #MHD_HTTP_CONFLICT)
+ * @return MHD result code
+ */
+int
+SH_return_backup (struct MHD_Connection *connection,
+                  const struct SYNC_AccountPublicKeyP *account,
+                  unsigned int default_http_status);
+
+
+/**
+ * Handle request on @a connection for retrieval of the latest
+ * backup of @a account.
+ *
  * @param connection the MHD connection to handle
  * @param account public key of the account the request is for
- * @param[in,out] con_cls the connection's closure (can be updated)
  * @return MHD result code
  */
 int
 sync_handler_backup_get (struct MHD_Connection *connection,
-                         const struct SYNC_AccountPublicKeyP *account,
-                         void **con_cls);
+                         const struct SYNC_AccountPublicKeyP *account);
 
 
 /**

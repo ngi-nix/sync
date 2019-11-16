@@ -12,6 +12,7 @@ bin_PROGRAMS = \
 sync_httpd_SOURCES = \
   sync-httpd.c sync-httpd.h \
   sync-httpd_backup.c sync-httpd_backup.h \
+  sync-httpd_backup_post.c \
   sync-httpd_mhd.c sync-httpd_mhd.h \
   sync-httpd_parsing.c sync-httpd_parsing.h \
   sync-httpd_responses.c sync-httpd_responses.h \
@@ -20,6 +21,7 @@ sync_httpd_LDADD = \
   $(top_builddir)/src/syncdb/libsyncdb.la \
   -lmicrohttpd \
   -ljansson \
+  -ltalermerchant \
   -ltalerjson \
   -ltalerutil \
   -lgnunetcurl \

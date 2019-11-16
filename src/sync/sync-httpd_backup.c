@@ -25,30 +25,21 @@
 #include "sync-httpd_responses.h"
 
 /**
+ * Handle request on @a connection for retrieval of the latest
+ * backup of @a account.
+ *
  * @param connection the MHD connection to handle
  * @param account public key of the account the request is for
- * @param[in,out] con_cls the connection's closure (can be updated)
  * @return MHD result code
  */
 int
 sync_handler_backup_get (struct MHD_Connection *connection,
-                         const struct SYNC_AccountPublicKeyP *account,
-                         void **con_cls)
+                         const struct SYNC_AccountPublicKeyP *account)
 {
-  struct SYNC_AccountSignatureP account_sig;
   struct GNUNET_HashCode backup_hash;
-  struct GNUNET_HashCode prev_hash;
-  size_t backup_size;
-  void *backup;
   enum SYNC_DB_QueryStatus qs;
-  struct MHD_Response *resp;
-  const char *inm;
-  struct GNUNET_HashCode inm_h;
   int ret;
 
-  inm = MHD_lookup_connection_value (connection,
-                                     MHD_HEADER_KIND,
-                                     MHD_HTTP_HEADER_IF_NONE_MATCH);
   qs = db->lookup_account_TR (db->cls,
                               account,
                               &backup_hash);
@@ -74,44 +65,86 @@ sync_handler_backup_get (struct MHD_Connection *connection,
                                              TALER_EC_SYNC_DB_FETCH_ERROR,
                                              "soft database failure");
   case SYNC_DB_NO_RESULTS:
-    resp = MHD_create_response_from_buffer (0,
-                                            NULL,
-                                            MHD_RESPMEM_PERSISTENT);
-    ret = MHD_queue_response (connection,
-                              MHD_HTTP_NO_CONTENT,
-                              resp);
-    MHD_destroy_response (resp);
+    {
+      struct MHD_Response *resp;
+
+      resp = MHD_create_response_from_buffer (0,
+                                              NULL,
+                                              MHD_RESPMEM_PERSISTENT);
+      ret = MHD_queue_response (connection,
+                                MHD_HTTP_NO_CONTENT,
+                                resp);
+      MHD_destroy_response (resp);
+    }
     return ret;
   case SYNC_DB_ONE_RESULT:
-    if (NULL != inm)
     {
-      if (GNUNET_OK !=
-          GNUNET_STRINGS_string_to_data (inm,
-                                         strlen (inm),
-                                         &inm_h,
-                                         sizeof (inm_h)))
+      const char *inm;
+
+      inm = MHD_lookup_connection_value (connection,
+                                         MHD_HEADER_KIND,
+                                         MHD_HTTP_HEADER_IF_NONE_MATCH);
+      if (NULL != inm)
       {
-        GNUNET_break_op (0);
-        return SH_RESPONSE_reply_bad_request (connection,
-                                              TALER_EC_SYNC_BAD_ETAG,
-                                              "Etag is not a base32-encoded SHA-512 hash");
-      }
-      if (0 == GNUNET_memcmp (&inm_h,
-                              &backup_hash))
-      {
-        resp = MHD_create_response_from_buffer (0,
-                                                NULL,
-                                                MHD_RESPMEM_PERSISTENT);
-        ret = MHD_queue_response (connection,
-                                  MHD_HTTP_NOT_MODIFIED,
-                                  resp);
-        MHD_destroy_response (resp);
-        return ret;
+        struct GNUNET_HashCode inm_h;
+
+        if (GNUNET_OK !=
+            GNUNET_STRINGS_string_to_data (inm,
+                                           strlen (inm),
+                                           &inm_h,
+                                           sizeof (inm_h)))
+        {
+          GNUNET_break_op (0);
+          return SH_RESPONSE_reply_bad_request (connection,
+                                                TALER_EC_SYNC_IF_NONE_MATCH,
+                                                "Etag does not include a base32-encoded SHA-512 hash");
+        }
+        if (0 == GNUNET_memcmp (&inm_h,
+                                &backup_hash))
+        {
+          resp = MHD_create_response_from_buffer (0,
+                                                  NULL,
+                                                  MHD_RESPMEM_PERSISTENT);
+          ret = MHD_queue_response (connection,
+                                    MHD_HTTP_NOT_MODIFIED,
+                                    resp);
+          MHD_destroy_response (resp);
+          return ret;
+        }
       }
     }
     /* We have a result, should fetch and return it! */
     break;
   }
+  return SH_return_backup (connection,
+                           account,
+                           MHD_HTTP_OK);
+}
+
+
+/**
+ * Return the current backup of @a account on @a connection
+ * using @a default_http_status on success.
+ *
+ * @param connection MHD connection to use
+ * @param account account to query
+ * @param default_http_status HTTP status to queue response
+ *  with on success (#MHD_HTTP_OK or #MHD_HTTP_CONFLICT)
+ * @return MHD result code
+ */
+int
+SH_return_backup (struct MHD_Connection *connection,
+                  const struct SYNC_AccountPublicKeyP *account,
+                  unsigned int default_http_status)
+{
+  enum SYNC_DB_QueryStatus qs;
+  struct MHD_Response *resp;
+  int ret;
+  struct SYNC_AccountSignatureP account_sig;
+  struct GNUNET_HashCode backup_hash;
+  struct GNUNET_HashCode prev_hash;
+  size_t backup_size;
+  void *backup;
 
   qs = db->lookup_backup_TR (db->cls,
                              account,
@@ -171,11 +204,11 @@ sync_handler_backup_get (struct MHD_Connection *connection,
                                                 sizeof (backup_hash));
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (resp,
-                                           "X-Sync-Signature",
+                                           "Sync-Signature",
                                            sig_s));
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (resp,
-                                           "X-Sync-Previous",
+                                           "Sync-Previous",
                                            prev_s));
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (resp,
@@ -186,29 +219,8 @@ sync_handler_backup_get (struct MHD_Connection *connection,
     GNUNET_free (sig_s);
   }
   ret = MHD_queue_response (connection,
-                            MHD_HTTP_NOT_MODIFIED,
+                            default_http_status,
                             resp);
   MHD_destroy_response (resp);
   return ret;
-}
-
-
-/**
- * @param connection the MHD connection to handle
- * @param[in,out] connection_cls the connection's closure (can be updated)
- * @param account public key of the account the request is for
- * @param upload_data upload data
- * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
- * @return MHD result code
- */
-int
-sync_handler_backup_post (struct MHD_Connection *connection,
-                          void **con_cls,
-                          const struct SYNC_AccountPublicKeyP *account,
-                          const char *upload_data,
-                          size_t *upload_data_size)
-{
-  struct SYNC_AccountSignatureP account_sig;
-
-  return MHD_NO;
 }
