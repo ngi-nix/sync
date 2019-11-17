@@ -61,9 +61,9 @@ struct TALER_Amount SH_annual_fee;
 char *SH_backend_url;
 
 /**
- * Our own base URL
+ * Our fulfillment URL.
  */
-char *SH_my_base_url;
+char *SH_fulfillment_url;
 
 /**
  * Our context for making HTTP requests.
@@ -187,6 +187,11 @@ url_handler (void *cls,
       &SH_handler_terms, MHD_HTTP_OK },
     {NULL, NULL, NULL, NULL, 0, 0 }
   };
+  static struct SH_RequestHandler h400 = {
+    "", NULL, "text/plain",
+    "Invalid account key", 0,
+    &SH_MHD_handler_static_response, MHD_HTTP_BAD_REQUEST
+  };
   static struct SH_RequestHandler h404 = {
     "", NULL, "text/html",
     "<html><title>404: not found</title></html>", 0,
@@ -235,11 +240,23 @@ url_handler (void *cls,
                 method,
                 url);
 
-  if (GNUNET_OK ==
-      GNUNET_CRYPTO_eddsa_public_key_from_string (url,
-                                                  strlen (url),
-                                                  &account_pub.eddsa_pub))
+  if (0 == strncmp (url,
+                    "/backups/",
+                    strlen ("/backups/")))
   {
+    const char *ac = &url[strlen ("/backups/")];
+
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_public_key_from_string (ac,
+                                                    strlen (ac),
+                                                    &account_pub.eddsa_pub))
+    {
+      return SH_MHD_handler_static_response (&h400,
+                                             connection,
+                                             con_cls,
+                                             upload_data,
+                                             upload_data_size);
+    }
     if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_GET))
     {
@@ -537,8 +554,8 @@ run (void *cls,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (config,
                                              "sync",
-                                             "BASE_URL",
-                                             &SH_my_base_url))
+                                             "FULFILLMENT_URL",
+                                             &SH_fulfillment_url))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "sync",

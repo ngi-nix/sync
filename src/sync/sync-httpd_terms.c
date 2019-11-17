@@ -43,9 +43,11 @@ SH_handler_terms (struct SH_RequestHandler *rh,
 {
   return SH_RESPONSE_reply_json_pack (connection,
                                       MHD_HTTP_OK,
-                                      "{s:I, s:o}",
+                                      "{s:I, s:o, s:s}",
                                       "storage_limit_in_megabytes",
                                       (json_int_t) SH_upload_limit_mb,
                                       "annual_fee",
-                                      TALER_JSON_from_amount (&SH_annual_fee));
+                                      TALER_JSON_from_amount (&SH_annual_fee),
+                                      "version",
+                                      "0.0");
 }

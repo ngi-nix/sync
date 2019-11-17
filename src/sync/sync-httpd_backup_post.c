@@ -449,7 +449,7 @@ begin_payment (struct BackupContext *bc,
   order = json_pack ("{s:o, s:s, s:s}",
                      "amount", TALER_JSON_from_amount (&SH_annual_fee),
                      "summary", "annual fee for sync service",
-                     "fulfillment_url", SH_my_base_url);
+                     "fulfillment_url", SH_fulfillment_url);
   bc->po = TALER_MERCHANT_order_put (SH_ctx,
                                      SH_backend_url,
                                      order,

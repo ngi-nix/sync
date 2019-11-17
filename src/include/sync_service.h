@@ -22,6 +22,7 @@
 #define SYNC_SERVICE_H
 
 #include <gnunet/gnunet_util_lib.h>
+#include <taler/taler_error_codes.h>
 #include <gnunet/gnunet_curl_lib.h>
 #include <jansson.h>
 

@@ -147,9 +147,9 @@ extern struct TALER_Amount SH_annual_fee;
 extern char *SH_backend_url;
 
 /**
- * Our own base URL
+ * Our fulfillment URL
  */
-extern char *SH_my_base_url;
+extern char *SH_fulfillment_url;
 
 /**
  * Our context for making HTTP requests.
