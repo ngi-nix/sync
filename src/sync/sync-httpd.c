@@ -34,57 +34,6 @@
  */
 #define UNIX_BACKLOG 500
 
-/**
- * How long do we hold an BACKEND connection if
- * we are awaiting payment before giving up (only
- * used when resuming).
- */
-#define CHECK_BACKEND_PAYMENT_TIMEOUT GNUNET_TIME_relative_multiply ( \
-    GNUNET_TIME_UNIT_SECONDS, 15)
-
-
-/**
- * Context we use to check for payments outside of HTTP requests.
- */
-struct PaymentContext
-{
-  /**
-   * The asyncronous operation.
-   */
-  struct TALER_MERCHANT_CheckPaymentOperation *cpo;
-
-  /**
-   * Kept in a DLL.
-   */
-  struct PaymentContext *next;
-
-  /**
-   * Kept in a DLL.
-   */
-  struct PaymentContext *prev;
-
-  /**
-   * Order ID of the payment.
-   */
-  char *order_id;
-
-  /**
-   * Account the payment is about.
-   */
-  struct SYNC_AccountPublicKeyP account_pub;
-};
-
-
-/**
- * Head of active payments.
- */
-static struct PaymentContext *pc_head;
-
-/**
- * Tail of active payments.
- */
-static struct PaymentContext *pc_tail;
-
 
 /**
  * The port we are running on
@@ -351,18 +300,7 @@ url_handler (void *cls,
 static void
 do_shutdown (void *cls)
 {
-  struct PaymentContext *pc;
-
   (void) cls;
-  while (NULL != (pc = pc_head))
-  {
-    TALER_MERCHANT_check_payment_cancel (pc->cpo);
-    GNUNET_CONTAINER_DLL_remove (pc_head,
-                                 pc_tail,
-                                 pc);
-    GNUNET_free (pc->order_id);
-    GNUNET_free (pc);
-  }
   if (NULL != SH_ctx)
   {
     GNUNET_CURL_fini (SH_ctx);
@@ -478,89 +416,6 @@ SH_trigger_daemon ()
   {
     triggered = 1;
   }
-}
-
-
-/**
- * Callback to process a GET /check-payment request
- *
- * @param cls our `struct PaymentContext`
- * @param http_status HTTP status code for this request
- * @param obj raw response body
- * @param paid #GNUNET_YES if the payment is settled, #GNUNET_NO if not
- *        settled, $GNUNET_SYSERR on error
- *        (note that refunded payments are returned as paid!)
- * @param refunded #GNUNET_YES if there is at least on refund on this payment,
- *        #GNUNET_NO if refunded, #GNUNET_SYSERR or error
- * @param refunded_amount amount that was refunded, NULL if there
- *        was no refund
- * @param taler_pay_uri the URI that instructs the wallets to process
- *                      the payment
- */
-static void
-check_payment_cb (void *cls,
-                  unsigned int http_status,
-                  const json_t *obj,
-                  int paid,
-                  int refunded,
-                  struct TALER_Amount *refund_amount,
-                  const char *taler_pay_uri)
-{
-  struct PaymentContext *pc = cls;
-
-  /* refunds are not supported, verify */
-  pc->cpo = NULL;
-  if (paid)
-  {
-    enum SYNC_DB_QueryStatus qs;
-
-    qs = db->increment_lifetime_TR (db->cls,
-                                    &pc->account_pub,
-                                    pc->order_id,
-                                    GNUNET_TIME_UNIT_YEARS); /* always annual */
-    GNUNET_break (0 > qs);
-  }
-  GNUNET_CONTAINER_DLL_remove (pc_head,
-                               pc_tail,
-                               pc);
-  GNUNET_free (pc->order_id);
-  GNUNET_free (pc);
-}
-
-
-/**
- * Function called on all pending payments.  Talks to our
- * backend to see if any of them are done yet.
- *
- * @param cls closure
- * @param account_pub which account is the order for
- * @param timestamp for how long have we been waiting
- * @param order_id order id in the backend
- * @param amount how much is the order for
- */
-static void
-check_on_payments_cb (void *cls,
-                      const struct SYNC_AccountPublicKeyP *account_pub,
-                      struct GNUNET_TIME_Absolute timestamp,
-                      const char *order_id,
-                      const struct TALER_Amount *amount)
-{
-  struct PaymentContext *pc;
-
-  (void) amount;
-  pc = GNUNET_new (struct PaymentContext);
-  pc->account_pub = *account_pub;
-  pc->order_id = GNUNET_strdup (order_id);
-  GNUNET_CONTAINER_DLL_insert (pc_head,
-                               pc_tail,
-                               pc);
-  pc->cpo = TALER_MERCHANT_check_payment (SH_ctx,
-                                          SH_backend_url,
-                                          order_id,
-                                          NULL /* our payments are NOT session-bound */,
-                                          CHECK_BACKEND_PAYMENT_TIMEOUT,
-                                          &check_payment_cb,
-                                          pc);
 }
 
 
@@ -703,19 +558,6 @@ run (void *cls,
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }
-
-  /* TODO: maybe make this conditional on a command-line option?
-     Might be expensive, and is strictly speaking not required. */
-  {
-    /* we might have been down for a while, catch up on
-       all payments that happened in the meantime */
-    enum SYNC_DB_QueryStatus qs;
-
-    qs = db->lookup_pending_payments_TR (db->cls,
-                                         &check_on_payments_cb,
-                                         NULL);
-    GNUNET_break (qs >= 0);
   }
 
   {

@@ -65,18 +65,15 @@ enum SYNC_DB_QueryStatus
 
 
 /**
- * Function called on all pending payments.
+ * Function called on all pending payments for an account.
  *
  * @param cls closure
- * @param account_pub which account is the order for
  * @param timestamp for how long have we been waiting
  * @param order_id order id in the backend
  * @param amount how much is the order for
  */
 typedef void
 (*SYNC_DB_PaymentPendingIterator)(void *cls,
-                                  const struct
-                                  SYNC_AccountPublicKeyP *account_pub,
                                   struct GNUNET_TIME_Absolute timestamp,
                                   const char *order_id,
                                   const struct TALER_Amount *amount);
@@ -171,20 +168,6 @@ struct SYNC_DatabasePlugin
                       const struct SYNC_AccountPublicKeyP *account_pub,
                       const char *order_id,
                       const struct TALER_Amount *amount);
-
-
-  /**
-   * Lookup pending payments.
-   *
-   * @param cls closure
-   * @param it iterator to call on all pending payments
-   * @param it_cls closure for @a it
-   * @return transaction status
-   */
-  enum SYNC_DB_QueryStatus
-  (*lookup_pending_payments_TR)(void *cls,
-                                SYNC_DB_PaymentPendingIterator it,
-                                void *it_cls);
 
 
   /**

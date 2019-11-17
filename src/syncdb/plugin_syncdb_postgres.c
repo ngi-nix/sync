@@ -269,23 +269,6 @@ postgres_store_payment (void *cls,
 
 
 /**
- * Lookup pending payments.
- *
- * @param cls closure
- * @param it iterator to call on all pending payments
- * @param it_cls closure for @a it
- * @return transaction status
- */
-static enum SYNC_DB_QueryStatus
-postgres_lookup_pending_payments (void *cls,
-                                  SYNC_DB_PaymentPendingIterator it,
-                                  void *it_cls)
-{
-  // FIXME: use payments_select
-}
-
-
-/**
  * Lookup pending payments by account.
  *
  * @param cls closure
@@ -1068,7 +1051,6 @@ libsync_plugin_db_postgres_init (void *cls)
   plugin->drop_tables = &postgres_drop_tables;
   plugin->gc = &postgres_gc;
   plugin->store_payment_TR = &postgres_store_payment;
-  plugin->lookup_pending_payments_TR = &postgres_lookup_pending_payments;
   plugin->lookup_pending_payments_by_account_TR =
     &postgres_lookup_pending_payments_by_account;
   plugin->store_backup_TR = &postgres_store_backup;
