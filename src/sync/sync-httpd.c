@@ -109,20 +109,20 @@ struct TALER_Amount SH_annual_fee;
 /**
  * Our Taler backend to process payments.
  */
-char *MH_backend_url;
+char *SH_backend_url;
 
 /**
  * Our own base URL
  */
-char *MH_my_base_url;
+char *SH_my_base_url;
 
 /**
  * Our context for making HTTP requests.
  */
-struct GNUNET_CURL_Context *MH_ctx;
+struct GNUNET_CURL_Context *SH_ctx;
 
 /**
- * Reschedule context for #MH_ctx.
+ * Reschedule context for #SH_ctx.
  */
 static struct GNUNET_CURL_RescheduleContext *rc;
 
@@ -327,7 +327,6 @@ url_handler (void *cls,
       hc = *con_cls;
       if (NULL != hc)
       {
-        hc->rh = rh;
         /* Store the async context ID, so we can restore it if
          * we get another callack for this request. */
         hc->async_scope_id = aid;
@@ -420,8 +419,7 @@ handle_mhd_completion_callback (void *cls,
   if (NULL == hc)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Finished handling request for `%s' with status %d\n",
-              hc->rh->url,
+              "Finished handling request with status %d\n",
               (int) toe);
   hc->cc (hc);
   *con_cls = NULL;
@@ -517,7 +515,7 @@ check_payment_cb (void *cls,
     enum SYNC_DB_QueryStatus qs;
 
     qs = db->increment_lifetime_TR (db->cls,
-                                    &pc->account,
+                                    &pc->account_pub,
                                     pc->order_id,
                                     GNUNET_TIME_UNIT_YEARS); /* always annual */
     GNUNET_break (0 > qs);
@@ -556,8 +554,8 @@ check_on_payments_cb (void *cls,
   GNUNET_CONTAINER_DLL_insert (pc_head,
                                pc_tail,
                                pc);
-  pc->cpo = TALER_MERCHANT_check_payment (MH_ctx,
-                                          MH_backend_url,
+  pc->cpo = TALER_MERCHANT_check_payment (SH_ctx,
+                                          SH_backend_url,
                                           order_id,
                                           NULL /* our payments are NOT session-bound */,
                                           CHECK_BACKEND_PAYMENT_TIMEOUT,
@@ -673,7 +671,7 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_string (config,
                                              "sync",
                                              "PAYMENT_BACKEND_URL",
-                                             &MH_backend_url))
+                                             &SH_backend_url))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "sync",
@@ -685,7 +683,7 @@ run (void *cls,
       GNUNET_CONFIGURATION_get_value_string (config,
                                              "sync",
                                              "BASE_URL",
-                                             &MH_my_url))
+                                             &SH_my_base_url))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "sync",
@@ -695,9 +693,9 @@ run (void *cls,
   }
 
   /* setup HTTP client event loop */
-  MH_ctx = GNUNET_CURL_init (&GNUNET_CURL_gnunet_scheduler_reschedule,
+  SH_ctx = GNUNET_CURL_init (&GNUNET_CURL_gnunet_scheduler_reschedule,
                              &rc);
-  rc = GNUNET_CURL_gnunet_rc_create (MH_ctx);
+  rc = GNUNET_CURL_gnunet_rc_create (SH_ctx);
 
 
   if (NULL ==
@@ -714,9 +712,9 @@ run (void *cls,
        all payments that happened in the meantime */
     enum SYNC_DB_QueryStatus qs;
 
-    db->lookup_pending_payments_TR (db->cls,
-                                    &check_on_payments_cb,
-                                    NULL);
+    qs = db->lookup_pending_payments_TR (db->cls,
+                                         &check_on_payments_cb,
+                                         NULL);
     GNUNET_break (qs >= 0);
   }
 

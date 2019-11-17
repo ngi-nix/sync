@@ -96,12 +96,14 @@ sync_handler_backup_get (struct MHD_Connection *connection,
         {
           GNUNET_break_op (0);
           return SH_RESPONSE_reply_bad_request (connection,
-                                                TALER_EC_SYNC_IF_NONE_MATCH,
+                                                TALER_EC_SYNC_BAD_IF_NONE_MATCH,
                                                 "Etag does not include a base32-encoded SHA-512 hash");
         }
         if (0 == GNUNET_memcmp (&inm_h,
                                 &backup_hash))
         {
+          struct MHD_Response *resp;
+
           resp = MHD_create_response_from_buffer (0,
                                                   NULL,
                                                   MHD_RESPMEM_PERSISTENT);

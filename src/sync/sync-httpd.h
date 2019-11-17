@@ -144,17 +144,17 @@ extern struct TALER_Amount SH_annual_fee;
 /**
  * Our Taler backend to process payments.
  */
-extern char *MH_backend_url;
+extern char *SH_backend_url;
 
 /**
  * Our own base URL
  */
-extern char *MH_my_base_url;
+extern char *SH_my_base_url;
 
 /**
  * Our context for making HTTP requests.
  */
-extern struct GNUNET_CURL_Context *MH_ctx;
+extern struct GNUNET_CURL_Context *SH_ctx;
 
 /**
  * Kick MHD to run now, to be called after MHD_resume_connection().
