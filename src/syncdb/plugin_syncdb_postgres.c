@@ -48,6 +48,10 @@ struct PostgresClosure
    */
   const char *transaction_name;
 
+  /**
+   * Currency we accept payments in.
+   */
+  char *currency;
 };
 
 
@@ -301,6 +305,85 @@ postgres_store_payment (void *cls,
 
 
 /**
+ * Closure for #payment_by_account_cb.
+ */
+struct PaymentIteratorContext
+{
+  /**
+   * Function to call on each result
+   */
+  SYNC_DB_PaymentPendingIterator it;
+
+  /**
+   * Closure for @e it.
+   */
+  void *it_cls;
+
+  /**
+   * Plugin context.
+   */
+  struct PostgresClosure *pg;
+
+  /**
+   * Query status to return.
+   */
+  enum GNUNET_DB_QueryStatus qs;
+
+};
+
+
+/**
+ * Helper function for #postgres_lookup_pending_payments_by_account().
+ * To be called with the results of a SELECT statement
+ * that has returned @a num_results results.
+ *
+ * @param cls closure of type `struct PaymentIteratorContext *`
+ * @param result the postgres result
+ * @param num_result the number of results in @a result
+ */
+static void
+payment_by_account_cb (void *cls,
+                       PGresult *result,
+                       unsigned int num_results)
+{
+  struct PaymentIteratorContext *pic = cls;
+
+  for (unsigned int i = 0; i < num_results; i++)
+  {
+    struct GNUNET_TIME_Absolute timestamp;
+    char *order_id;
+    struct TALER_Amount amount;
+    struct GNUNET_PQ_ResultSpec rs[] = {
+      GNUNET_PQ_result_spec_absolute_time ("timestamp",
+                                           &timestamp),
+      GNUNET_PQ_result_spec_string ("order_id",
+                                    &order_id),
+      TALER_PQ_result_spec_amount ("amount",
+                                   pic->pg->currency,
+                                   &amount),
+      GNUNET_PQ_result_spec_end
+    };
+
+    if (GNUNET_OK !=
+        GNUNET_PQ_extract_result (result,
+                                  rs,
+                                  i))
+    {
+      GNUNET_break (0);
+      pic->qs = GNUNET_DB_STATUS_HARD_ERROR;
+      return;
+    }
+    pic->qs = i + 1;
+    pic->it (pic->it_cls,
+             timestamp,
+             order_id,
+             &amount);
+    GNUNET_PQ_cleanup_result (rs);
+  }
+}
+
+
+/**
  * Lookup pending payments by account.
  *
  * @param cls closure
@@ -309,14 +392,36 @@ postgres_store_payment (void *cls,
  * @param it_cls closure for @a it
  * @return transaction status
  */
-static enum SYNC_DB_QueryStatus
+static enum GNUNET_DB_QueryStatus
 postgres_lookup_pending_payments_by_account (void *cls,
                                              const struct
                                              SYNC_AccountPublicKeyP *account_pub,
                                              SYNC_DB_PaymentPendingIterator it,
                                              void *it_cls)
 {
-  // FIXME: use payments_select_by_account
+  struct PostgresClosure *pg = cls;
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_auto_from_type (account_pub),
+    GNUNET_PQ_query_param_end
+  };
+  struct PaymentIteratorContext pic = {
+    .it = it,
+    .it_cls = it_cls,
+    .pg = pg
+  };
+  enum GNUNET_DB_QueryStatus qs;
+
+  check_connection (pg);
+  postgres_preflight (pg);
+  qs = GNUNET_PQ_eval_prepared_multi_select (pg->conn,
+                                             "payments_select_by_account",
+                                             params,
+                                             &payment_by_account_cb,
+                                             &pic);
+  if (qs > 0)
+    return pic.qs;
+  GNUNET_break (GNUNET_DB_STATUS_HARD_ERROR != qs);
+  return qs;
 }
 
 
@@ -998,7 +1103,8 @@ libsync_plugin_db_postgres_init (void *cls)
                             0),
     GNUNET_PQ_make_prepare ("payments_select_by_account",
                             "SELECT"
-                            " order_id"
+                            " timestamp"
+                            ",order_id"
                             ",amount_val"
                             ",amount_frac"
                             "FROM"

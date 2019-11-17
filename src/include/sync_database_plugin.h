@@ -22,6 +22,7 @@
 #define SYNC_DATABASE_PLUGIN_H
 
 #include <gnunet/gnunet_util_lib.h>
+#include <gnunet/gnunet_db_lib.h>
 #include "sync_service.h"
 #include <jansson.h>
 #include <taler/taler_util.h>
@@ -179,7 +180,7 @@ struct SYNC_DatabasePlugin
    * @param it_cls closure for @a it
    * @return transaction status
    */
-  enum SYNC_DB_QueryStatus
+  enum GNUNET_DB_QueryStatus
   (*lookup_pending_payments_by_account_TR)(void *cls,
                                            const struct
                                            SYNC_AccountPublicKeyP *account_pub,

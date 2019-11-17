@@ -307,11 +307,25 @@ static int
 begin_payment (struct BackupContext *bc)
 {
   json_t *order;
+  enum GNUNET_DB_QueryStatus qs;
 
-  db->lookup_pending_payments_by_account_TR (db->cls,
-                                             &bc->account,
-                                             &ongoing_payment_cb,
-                                             bc);
+  qs = db->lookup_pending_payments_by_account_TR (db->cls,
+                                                  &bc->account,
+                                                  &ongoing_payment_cb,
+                                                  bc);
+  if (qs < 0)
+  {
+    struct MHD_Response *resp;
+    int ret;
+
+    resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
+                                   "Failed to check for existing orders in sync database");
+    ret = MHD_queue_response (bc->con,
+                              MHD_HTTP_INTERNAL_SERVER_ERROR,
+                              resp);
+    MHD_destroy_response (resp);
+    return ret;
+  }
   if (NULL != bc->existing_order_id)
   {
     // FIXME: this is incorrect, we should FIRST check
