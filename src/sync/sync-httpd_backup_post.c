@@ -118,6 +118,12 @@ struct BackupContext
   char *existing_order_id;
 
   /**
+   * Timestamp of the order in @e existing_order_id. Used to
+   * select the most recent unpaid offer.
+   */
+  struct GNUNET_TIME_Absolute existing_order_timestamp;
+
+  /**
    * Expected total upload size.
    */
   size_t upload_size;
@@ -190,6 +196,7 @@ cleanup_ctx (struct TM_HandlerContext *hc)
     GNUNET_CRYPTO_hash_context_abort (bc->hash_ctx);
   if (NULL != bc->resp)
     MHD_destroy_response (bc->resp);
+  GNUNET_free_non_null (bc->existing_order_id);
   GNUNET_free_non_null (bc->upload);
   GNUNET_free (bc);
 }
@@ -290,78 +297,17 @@ ongoing_payment_cb (void *cls,
 {
   struct BackupContext *bc = cls;
 
+  (void) amount;
   if (0 != TALER_amount_cmp (amount,
                              &SH_annual_fee))
     return; /* can't re-use, fees changed */
-  bc->existing_order_id = GNUNET_strdup (order_id);
-}
-
-
-/**
- * Helper function used to ask our backend to begin
- * processing a payment for the user's account.
- *
- * @param bc context to begin payment for.
- */
-static int
-begin_payment (struct BackupContext *bc)
-{
-  json_t *order;
-  enum GNUNET_DB_QueryStatus qs;
-
-  qs = db->lookup_pending_payments_by_account_TR (db->cls,
-                                                  &bc->account,
-                                                  &ongoing_payment_cb,
-                                                  bc);
-  if (qs < 0)
+  if ( (NULL == bc->existing_order_id) ||
+       (bc->existing_order_timestamp.abs_value_us < timestamp.abs_value_us) )
   {
-    struct MHD_Response *resp;
-    int ret;
-
-    resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
-                                   "Failed to check for existing orders in sync database");
-    ret = MHD_queue_response (bc->con,
-                              MHD_HTTP_INTERNAL_SERVER_ERROR,
-                              resp);
-    MHD_destroy_response (resp);
-    return ret;
+    GNUNET_free_non_null (bc->existing_order_id);
+    bc->existing_order_id = GNUNET_strdup (order_id);
+    bc->existing_order_timestamp = timestamp;
   }
-  if (NULL != bc->existing_order_id)
-  {
-    // FIXME: this is incorrect, we should FIRST check
-    // if that payment was ALREADY MADE against our
-    // backend, and only if NOT return payment required here!
-    // (this also means that #begin_payment() and
-    //  #handle_database_error() have for now
-    // the wrong signature, as it is possible that we
-    // would continue as if there were no problem!
-    struct MHD_Response *resp;
-    int ret;
-
-    resp = make_payment_request (bc->existing_order_id);
-    GNUNET_free (bc->existing_order_id);
-    bc->existing_order_id = NULL;
-    ret = MHD_queue_response (bc->con,
-                              MHD_HTTP_PAYMENT_REQUIRED,
-                              resp);
-    MHD_destroy_response (resp);
-    return ret;
-  }
-  GNUNET_CONTAINER_DLL_insert (bc_head,
-                               bc_tail,
-                               bc);
-  MHD_suspend_connection (bc->con);
-  order = json_pack ("{s:o, s:s, s:s}",
-                     "amount", TALER_JSON_from_amount (&SH_annual_fee),
-                     "summary", "annual fee for sync service",
-                     "fulfillment_url", SH_my_base_url);
-  bc->po = TALER_MERCHANT_order_put (SH_ctx,
-                                     SH_backend_url,
-                                     order,
-                                     &proposal_cb,
-                                     bc);
-  json_decref (order);
-  return MHD_YES;
 }
 
 
@@ -413,6 +359,13 @@ check_payment_cb (void *cls,
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return; /* continue as planned */
   }
+  if (NULL != bc->existing_order_id)
+  {
+    /* repeat payment request */
+    bc->resp = make_payment_request (bc->existing_order_id);
+    bc->response_code = MHD_HTTP_PAYMENT_REQUIRED;
+    return;
+  }
   bc->resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_TIMEOUT,
                                      "Timeout awaiting promised payment");
   bc->response_code = MHD_HTTP_REQUEST_TIMEOUT;
@@ -448,7 +401,69 @@ await_payment (struct BackupContext *bc,
 
 
 /**
+ * Helper function used to ask our backend to begin
+ * processing a payment for the user's account.
+ * May perform asynchronous operations by suspending the connection
+ * if required.
+ *
+ * @param bc context to begin payment for.
+ * @param pay_req #GNUNET_YES if payment was explicitly requested,
+ *                #GNUNET_NO if payment is needed
+ * @return MHD status code
+ */
+static int
+begin_payment (struct BackupContext *bc,
+               int pay_req)
+{
+  json_t *order;
+  enum GNUNET_DB_QueryStatus qs;
+
+  qs = db->lookup_pending_payments_by_account_TR (db->cls,
+                                                  &bc->account,
+                                                  &ongoing_payment_cb,
+                                                  bc);
+  if (qs < 0)
+  {
+    struct MHD_Response *resp;
+    int ret;
+
+    resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
+                                   "Failed to check for existing orders in sync database");
+    ret = MHD_queue_response (bc->con,
+                              MHD_HTTP_INTERNAL_SERVER_ERROR,
+                              resp);
+    MHD_destroy_response (resp);
+    return ret;
+  }
+  if (NULL != bc->existing_order_id)
+  {
+    await_payment (bc,
+                   GNUNET_TIME_UNIT_ZERO /* no long polling */,
+                   bc->existing_order_id);
+    return MHD_YES;
+  }
+  GNUNET_CONTAINER_DLL_insert (bc_head,
+                               bc_tail,
+                               bc);
+  MHD_suspend_connection (bc->con);
+  order = json_pack ("{s:o, s:s, s:s}",
+                     "amount", TALER_JSON_from_amount (&SH_annual_fee),
+                     "summary", "annual fee for sync service",
+                     "fulfillment_url", SH_my_base_url);
+  bc->po = TALER_MERCHANT_order_put (SH_ctx,
+                                     SH_backend_url,
+                                     order,
+                                     &proposal_cb,
+                                     bc);
+  json_decref (order);
+  return MHD_YES;
+}
+
+
+/**
  * We got some query status from the DB.  Handle the error cases.
+ * May perform asynchronous operations by suspending the connection
+ * if required.
  *
  * @param bc connection to handle status for
  * @param qs query status to handle
@@ -472,7 +487,10 @@ handle_database_error (struct BackupContext *bc,
                                               MHD_GET_ARGUMENT_KIND,
                                               "paying");
       if (NULL == order_id)
-        return begin_payment (bc);
+      {
+        return begin_payment (bc,
+                              GNUNET_NO);
+      }
       await_payment (bc,
                      CHECK_PAYMENT_TIMEOUT,
                      order_id);
@@ -694,10 +712,8 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                                MHD_GET_ARGUMENT_KIND,
                                                "pay");
       if (NULL != order_req)
-      {
-        begin_payment (bc);
-        return MHD_YES;
-      }
+        return begin_payment (bc,
+                              GNUNET_YES);
     }
     /* ready to begin! */
     return MHD_YES;
