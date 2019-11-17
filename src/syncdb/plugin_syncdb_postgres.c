@@ -264,7 +264,39 @@ postgres_store_payment (void *cls,
                         const char *order_id,
                         const struct TALER_Amount *amount)
 {
-  // FIXME: use payment_insert
+  struct PostgresClosure *pg = cls;
+  enum GNUNET_DB_QueryStatus qs;
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_PQ_QueryParam params[] = {
+    GNUNET_PQ_query_param_auto_from_type (account_pub),
+    GNUNET_PQ_query_param_string (order_id),
+    GNUNET_PQ_query_param_absolute_time (&now),
+    TALER_PQ_query_param_amount (amount),
+    GNUNET_PQ_query_param_end
+  };
+
+  check_connection (pg);
+  postgres_preflight (pg);
+  qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
+                                           "payment_insert",
+                                           params);
+  switch (qs)
+  {
+  case GNUNET_DB_STATUS_SOFT_ERROR:
+    GNUNET_break (0);
+    return SYNC_DB_SOFT_ERROR;
+  case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
+    GNUNET_break (0);
+    return SYNC_DB_NO_RESULTS;
+  case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
+    return SYNC_DB_ONE_RESULT;
+  case GNUNET_DB_STATUS_HARD_ERROR:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
+  default:
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
+  }
 }
 
 
