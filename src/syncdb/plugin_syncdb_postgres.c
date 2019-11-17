@@ -1023,7 +1023,7 @@ libsync_plugin_db_postgres_init (void *cls)
                             ",expiration_date INT8 NOT NULL"
                             ");"),
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS payments"
-                            "(account_pub BYTEA CHECK (length(account_pub)=32),"
+                            "(account_pub BYTEA CHECK (length(account_pub)=32)"
                             ",order_id VARCHAR PRIMARY KEY"
                             ",timestamp INT8 NOT NULL"
                             ",amount_val INT8 NOT NULL" /* amount we were paid */
@@ -1049,7 +1049,7 @@ libsync_plugin_db_postgres_init (void *cls)
   struct GNUNET_PQ_PreparedStatement ps[] = {
     GNUNET_PQ_make_prepare ("account_insert",
                             "INSERT INTO accounts "
-                            "(account_pub,"
+                            "(account_pub"
                             ",expiration_date"
                             ") VALUES "
                             "($1,$2);",
@@ -1096,10 +1096,8 @@ libsync_plugin_db_postgres_init (void *cls)
                             ",order_id"
                             ",amount_val"
                             ",amount_frac"
-                            "FROM"
-                            " payments "
-                            "WHERE"
-                            " paid=FALSE;",
+                            " FROM payments"
+                            " WHERE paid=FALSE;",
                             0),
     GNUNET_PQ_make_prepare ("payments_select_by_account",
                             "SELECT"
@@ -1107,9 +1105,8 @@ libsync_plugin_db_postgres_init (void *cls)
                             ",order_id"
                             ",amount_val"
                             ",amount_frac"
-                            "FROM"
-                            " payments "
-                            "WHERE"
+                            " FROM payments"
+                            " WHERE"
                             "  paid=FALSE"
                             " AND"
                             "  account_pub=$1;",
@@ -1119,7 +1116,7 @@ libsync_plugin_db_postgres_init (void *cls)
                             "WHERE"
                             " expiration_date < $1;",
                             1),
-    GNUNET_PQ_make_prepare ("gc_accounts",
+    GNUNET_PQ_make_prepare ("gc_pending_payments",
                             "DELETE FROM payments "
                             "WHERE"
                             "  paid=FALSE"
