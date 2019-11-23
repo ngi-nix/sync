@@ -60,6 +60,10 @@ SH_RESPONSE_make_json (const json_t *json)
   }
   GNUNET_break (MHD_YES ==
                 MHD_add_response_header (resp,
+                                         MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                                         "*"));
+  GNUNET_break (MHD_YES ==
+                MHD_add_response_header (resp,
                                          MHD_HTTP_HEADER_CONTENT_TYPE,
                                          "application/json"));
   return resp;
