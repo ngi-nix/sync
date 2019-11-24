@@ -28,7 +28,9 @@
 #include <microhttpd.h> /* just for HTTP status codes */
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_curl_lib.h>
+#include <taler/taler_signatures.h>
 #include "sync_service.h"
+#include "sync_api_curl_defaults.h"
 
 
 /**
@@ -63,6 +65,46 @@ struct SYNC_UploadOperation
   void *cb_cls;
 
 };
+
+
+/**
+ * Function called when we're done processing the
+ * HTTP /backup request.
+ *
+ * @param cls the `struct SYNC_UploadOperation`
+ * @param response_code HTTP response code, 0 on error
+ * @param response
+ */
+static void
+handle_upload_finished (void *cls,
+                        long response_code,
+                        const void *data,
+                        size_t data_size)
+{
+  struct SYNC_UploadOperation *uo = cls;
+  enum TALER_ErrorCode ec = TALER_EC_INVALID;
+
+  uo->job = NULL;
+  switch (response_code)
+  {
+  case 0:
+    break;
+  case MHD_HTTP_OK:
+    break;
+    // FIXME: handle all cases...
+  }
+
+  if (NULL != uo->cb)
+  {
+    uo->cb (uo->cb_cls,
+            ec,
+            response_code,
+            NULL);
+    uo->cb = NULL;
+  }
+  SYNC_upload_cancel (uo);
+}
+
 
 
 /**
@@ -106,8 +148,46 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
              SYNC_UploadCallback cb,
              void *cb_cls)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct SYNC_UploadSignaturePS usp;
+  struct SYNC_AccountSignatureP account_sig;
+  struct SYNC_UploadOperation *uo;
+  CURL *eh;
+
+  usp.purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD);
+  usp.purpose.size = htonl (sizeof (usp));
+  usp.old_backup_hash = *prev_backup_hash;
+  GNUNET_CRYPTO_hash (backup,
+                      backup_size,
+                      &usp.new_backup_hash);
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_sign (&priv->eddsa_priv,
+                                &usp.purpose,
+                                &account_sig.eddsa_sig))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  uo = GNUNET_new (struct SYNC_UploadOperation);
+  // FIXME: build uo->url
+  uo->ctx = ctx;
+  uo->cb = cb;
+  uo->cb_cls = cb_cls;
+  eh = SYNC_curl_easy_get_ (uo->url);
+  // FIXME: set headers!
+  GNUNET_assert (CURLE_OK ==
+                 curl_easy_setopt (eh,
+                                   CURLOPT_POSTFIELDS,
+                                   backup));
+  GNUNET_assert (CURLE_OK ==
+                 curl_easy_setopt (eh,
+                                   CURLOPT_POSTFIELDSIZE,
+                                   (long) backup_size));
+  uo->job = GNUNET_CURL_job_add_raw (ctx,
+                                     eh,
+                                     GNUNET_NO,
+                                     &handle_upload_finished,
+                                     uo);
+  return uo;
 }
 
 
@@ -121,6 +201,13 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
 void
 SYNC_upload_cancel (struct SYNC_UploadOperation *uo)
 {
+  if (NULL != uo->job)
+  {
+    GNUNET_CURL_job_cancel (uo->job);
+    uo->job = NULL;
+  }
+  GNUNET_free (uo->url);
+  GNUNET_free (uo);
 }
 
 

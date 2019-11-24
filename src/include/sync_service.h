@@ -232,6 +232,8 @@ struct SYNC_UploadOperation;
  * @param priv private key of an account with the server
  * @param prev_backup_hash hash of the previous backup, NULL for the first upload ever
  * @param backup_size number of bytes in @a backup
+ * @param backup the encrypted backup, must remain in
+ *         memory until we are done with the operation!
  * @param payment_requested #GNUNET_YES if the client wants to pay more for the account now
  * @param paid_order_id order ID of a recent payment made, or NULL for none
  * @param cb function to call with the result
@@ -262,17 +264,34 @@ void
 SYNC_upload_cancel (struct SYNC_UploadOperation *uo);
 
 
+/**
+ * Detailed results from the successful download.
+ */
 struct SYNC_DownloadDetails
 {
-
+  /**
+   * Signature (already verified).
+   */
   struct SYNC_AccountSignatureP sig;
 
+  /**
+   * Hash of the previous version.
+   */
   struct GNUNET_HashCode prev_backup_hash;
 
+  /**
+   * Hash over @e backup and @e backup_size.
+   */
   struct GNUNET_HashCode curr_backup_hash;
 
+  /**
+   * The backup we downloaded.
+   */
   const void *backup;
 
+  /**
+   * Number of bytes in @e backup.
+   */
   size_t backup_size;
 
 };
