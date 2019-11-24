@@ -68,46 +68,4 @@ SH_MHD_handler_agpl_redirect (struct SH_RequestHandler *rh,
                               size_t *upload_data_size);
 
 
-/**
- * Function to call to handle the request by building a JSON
- * reply from varargs.
- *
- * @param rh context of the handler
- * @param connection the MHD connection to handle
- * @param[in,out] connection_cls the connection's closure (can be updated)
- * @param response_code HTTP response code to use
- * @param do_cache can the response be cached? (0: no, 1: yes)
- * @param fmt format string for pack
- * @param ... varargs
- * @return MHD result code
- */
-int
-SH_MHD_helper_send_json_pack (struct SH_RequestHandler *rh,
-                              struct MHD_Connection *connection,
-                              void *connection_cls,
-                              int response_code,
-                              int do_cache,
-                              const char *fmt,
-                              ...);
-
-
-/**
- * Function to call to handle the request by building a JSON
- * reply with an error message from @a rh.
- *
- * @param rh context of the handler
- * @param connection the MHD connection to handle
- * @param[in,out] connection_cls the connection's closure (can be updated)
- * @param upload_data upload data
- * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
- * @return MHD result code
- */
-int
-SH_MHD_handler_send_json_pack_error (struct SH_RequestHandler *rh,
-                                     struct MHD_Connection *connection,
-                                     void **connection_cls,
-                                     const char *upload_data,
-                                     size_t *upload_data_size);
-
-
 #endif

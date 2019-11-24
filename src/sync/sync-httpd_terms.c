@@ -19,7 +19,6 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "sync-httpd_responses.h"
 #include "sync-httpd_terms.h"
 #include <taler/taler_json_lib.h>
 
@@ -41,13 +40,13 @@ SH_handler_terms (struct SH_RequestHandler *rh,
                   const char *upload_data,
                   size_t *upload_data_size)
 {
-  return SH_RESPONSE_reply_json_pack (connection,
-                                      MHD_HTTP_OK,
-                                      "{s:I, s:o, s:s}",
-                                      "storage_limit_in_megabytes",
-                                      (json_int_t) SH_upload_limit_mb,
-                                      "annual_fee",
-                                      TALER_JSON_from_amount (&SH_annual_fee),
-                                      "version",
-                                      "0.0");
+  return TALER_MHD_reply_json_pack (connection,
+                                    MHD_HTTP_OK,
+                                    "{s:I, s:o, s:s}",
+                                    "storage_limit_in_megabytes",
+                                    (json_int_t) SH_upload_limit_mb,
+                                    "annual_fee",
+                                    TALER_JSON_from_amount (&SH_annual_fee),
+                                    "version",
+                                    "0.0");
 }

@@ -22,7 +22,7 @@
 #include "sync-httpd.h"
 #include <gnunet/gnunet_util_lib.h>
 #include "sync-httpd_backup.h"
-#include "sync-httpd_responses.h"
+
 
 /**
  * Handle request on @a connection for retrieval of the latest
@@ -47,23 +47,27 @@ sync_handler_backup_get (struct MHD_Connection *connection,
   {
   case SYNC_DB_OLD_BACKUP_MISSMATCH:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                             "unexpected return status (backup missmatch)");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       "unexpected return status (backup missmatch)");
   case SYNC_DB_PAYMENT_REQUIRED:
-    return SH_RESPONSE_reply_not_found (connection,
-                                        TALER_EC_SYNC_ACCOUNT_UNKNOWN,
-                                        "account");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_NOT_FOUND,
+                                       TALER_EC_SYNC_ACCOUNT_UNKNOWN,
+                                       "account");
   case SYNC_DB_HARD_ERROR:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_SYNC_DB_FETCH_ERROR,
-                                             "hard database failure");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DB_FETCH_ERROR,
+                                       "hard database failure");
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_SYNC_DB_FETCH_ERROR,
-                                             "soft database failure");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DB_FETCH_ERROR,
+                                       "soft database failure");
   case SYNC_DB_NO_RESULTS:
     {
       struct MHD_Response *resp;
@@ -99,9 +103,10 @@ sync_handler_backup_get (struct MHD_Connection *connection,
                                            sizeof (inm_h)))
         {
           GNUNET_break_op (0);
-          return SH_RESPONSE_reply_bad_request (connection,
-                                                TALER_EC_SYNC_BAD_IF_NONE_MATCH,
-                                                "Etag does not include a base32-encoded SHA-512 hash");
+          return TALER_MHD_reply_with_error (connection,
+                                             MHD_HTTP_BAD_REQUEST,
+                                             TALER_EC_SYNC_BAD_IF_NONE_MATCH,
+                                             "Etag does not include a base32-encoded SHA-512 hash");
         }
         if (0 == GNUNET_memcmp (&inm_h,
                                 &backup_hash))
@@ -167,33 +172,38 @@ SH_return_backup (struct MHD_Connection *connection,
   {
   case SYNC_DB_OLD_BACKUP_MISSMATCH:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                             "unexpected return status (backup missmatch)");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       "unexpected return status (backup missmatch)");
   case SYNC_DB_PAYMENT_REQUIRED:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                             "unexpected return status (payment required)");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       "unexpected return status (payment required)");
   case SYNC_DB_HARD_ERROR:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_SYNC_DB_FETCH_ERROR,
-                                             "hard database failure");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DB_FETCH_ERROR,
+                                       "hard database failure");
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_SYNC_DB_FETCH_ERROR,
-                                             "soft database failure");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DB_FETCH_ERROR,
+                                       "soft database failure");
   case SYNC_DB_NO_RESULTS:
     GNUNET_break (0);
     /* Note: can theoretically happen due to non-transactional nature if
        the backup expired / was gc'ed JUST between the two SQL calls.
        But too rare to handle properly, as doing a transaction would be
        expensive. Just admit to failure ;-) */
-    return SH_RESPONSE_reply_internal_error (connection,
-                                             TALER_EC_SYNC_DB_FETCH_ERROR,
-                                             "unexpected empty result set (try again?)");
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DB_FETCH_ERROR,
+                                       "unexpected empty result set (try again?)");
   case SYNC_DB_ONE_RESULT:
     /* interesting case below */
     break;

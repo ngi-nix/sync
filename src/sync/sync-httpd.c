@@ -14,16 +14,14 @@
   TALER; see the file COPYING.  If not, see <http://www.gnu.org/licenses/>
 */
 /**
- * @file backup/sync-httpd.c
+ * @file sync/sync-httpd.c
  * @brief HTTP serving layer intended to provide basic backup operations
  * @author Christian Grothoff
  */
 #include "platform.h"
 #include <microhttpd.h>
 #include <gnunet/gnunet_util_lib.h>
-#include "sync-httpd_responses.h"
 #include "sync-httpd.h"
-#include "sync-httpd_parsing.h"
 #include "sync-httpd_mhd.h"
 #include "sync_database_lib.h"
 #include "sync-httpd_backup.h"
@@ -35,15 +33,11 @@
 #define UNIX_BACKLOG 500
 
 
-/**
- * The port we are running on
- */
-static long long unsigned port;
 
 /**
  * Should a "Connection: close" header be added to each HTTP response?
  */
-int SH_sync_connection_close;
+static int SH_sync_connection_close;
 
 /**
  * Upload limit to the service, in megabytes.
@@ -89,17 +83,6 @@ static int result;
  * The MHD Daemon
  */
 static struct MHD_Daemon *mhd;
-
-/**
- * Path for the unix domain-socket
- * to run the daemon on.
- */
-static char *serve_unixpath;
-
-/**
- * File mode for unix-domain socket.
- */
-static mode_t unixpath_mode;
 
 /**
  * Connection handle to the our database
@@ -505,9 +488,15 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   int fh;
+  enum TALER_MHD_GlobalOptions go;
+  uint16_t port;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Starting sync-httpd\n");
+  go = TALER_MHD_GO_NONE;
+  if (SH_sync_connection_close)
+    go |= TALER_MHD_GO_FORCE_CONNECTION_CLOSE;
+  TALER_MHD_setup (go);
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
@@ -577,243 +566,14 @@ run (void *cls,
     return;
   }
 
+  fh = TALER_MHD_bind (config,
+                       "sync",
+                       &port);
+  if ( (0 == port) &&
+       (-1 == fh) )
   {
-    const char *choices[] = {"tcp",
-                             "unix",
-                             NULL};
-
-    const char *serve_type;
-
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_choice (config,
-                                               "sync",
-                                               "SERVE",
-                                               choices,
-                                               &serve_type))
-    {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                                 "sync",
-                                 "SERVE",
-                                 "serve type required");
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
-
-    if (0 == strcmp (serve_type, "unix"))
-    {
-      struct sockaddr_un *un;
-      char *mode;
-      struct GNUNET_NETWORK_Handle *nh;
-
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_filename (config,
-                                                   "sync",
-                                                   "unixpath",
-                                                   &serve_unixpath))
-      {
-        GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                                   "sync",
-                                   "unixpath",
-                                   "unixpath required");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-
-      if (strlen (serve_unixpath) >= sizeof (un->sun_path))
-      {
-        fprintf (stderr,
-                 "Invalid configuration: unix path too long\n");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-
-      if (GNUNET_OK !=
-          GNUNET_CONFIGURATION_get_value_string (config,
-                                                 "sync",
-                                                 "UNIXPATH_MODE",
-                                                 &mode))
-      {
-        GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                   "sync",
-                                   "UNIXPATH_MODE");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      errno = 0;
-      unixpath_mode = (mode_t) strtoul (mode, NULL, 8);
-      if (0 != errno)
-      {
-        GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                                   "sync",
-                                   "UNIXPATH_MODE",
-                                   "must be octal number");
-        GNUNET_free (mode);
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      GNUNET_free (mode);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Creating listen socket '%s' with mode %o\n",
-                  serve_unixpath, unixpath_mode);
-
-      if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (serve_unixpath))
-      {
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-                                  "mkdir",
-                                  serve_unixpath);
-      }
-
-      un = GNUNET_new (struct sockaddr_un);
-      un->sun_family = AF_UNIX;
-      strncpy (un->sun_path,
-               serve_unixpath,
-               sizeof (un->sun_path) - 1);
-
-      GNUNET_NETWORK_unix_precheck (un);
-
-      if (NULL == (nh = GNUNET_NETWORK_socket_create (AF_UNIX,
-                                                      SOCK_STREAM,
-                                                      0)))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                             "socket(AF_UNIX)");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      if (GNUNET_OK !=
-          GNUNET_NETWORK_socket_bind (nh,
-                                      (void *) un,
-                                      sizeof (struct sockaddr_un)))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                             "bind(AF_UNIX)");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      if (GNUNET_OK !=
-          GNUNET_NETWORK_socket_listen (nh,
-                                        UNIX_BACKLOG))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                             "listen(AF_UNIX)");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-
-      fh = GNUNET_NETWORK_get_fd (nh);
-      GNUNET_NETWORK_socket_free_memory_only_ (nh);
-      if (0 != chmod (serve_unixpath,
-                      unixpath_mode))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                             "chmod");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      port = 0;
-    }
-    else if (0 == strcmp (serve_type, "tcp"))
-    {
-      char *bind_to;
-
-      if (GNUNET_SYSERR ==
-          GNUNET_CONFIGURATION_get_value_number (config,
-                                                 "sync",
-                                                 "PORT",
-                                                 &port))
-      {
-        GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                   "sync",
-                                   "PORT");
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-      }
-      if (GNUNET_OK ==
-          GNUNET_CONFIGURATION_get_value_string (config,
-                                                 "sync",
-                                                 "BIND_TO",
-                                                 &bind_to))
-      {
-        char port_str[6];
-        struct addrinfo hints;
-        struct addrinfo *res;
-        int ec;
-        struct GNUNET_NETWORK_Handle *nh;
-
-        GNUNET_snprintf (port_str,
-                         sizeof (port_str),
-                         "%u",
-                         (uint16_t) port);
-        memset (&hints, 0, sizeof (hints));
-        hints.ai_family = AF_UNSPEC;
-        hints.ai_socktype = SOCK_STREAM;
-        hints.ai_protocol = IPPROTO_TCP;
-        hints.ai_flags = AI_PASSIVE
-#ifdef AI_IDN
-                         | AI_IDN
-#endif
-        ;
-        if (0 !=
-            (ec = getaddrinfo (bind_to,
-                               port_str,
-                               &hints,
-                               &res)))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Failed to resolve BIND_TO address `%s': %s\n",
-                      bind_to,
-                      gai_strerror (ec));
-          GNUNET_free (bind_to);
-          GNUNET_SCHEDULER_shutdown ();
-          return;
-        }
-        GNUNET_free (bind_to);
-
-        if (NULL == (nh = GNUNET_NETWORK_socket_create (res->ai_family,
-                                                        res->ai_socktype,
-                                                        res->ai_protocol)))
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                               "socket");
-          freeaddrinfo (res);
-          GNUNET_SCHEDULER_shutdown ();
-          return;
-        }
-        if (GNUNET_OK !=
-            GNUNET_NETWORK_socket_bind (nh,
-                                        res->ai_addr,
-                                        res->ai_addrlen))
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                               "bind");
-          freeaddrinfo (res);
-          GNUNET_SCHEDULER_shutdown ();
-          return;
-        }
-        freeaddrinfo (res);
-        if (GNUNET_OK !=
-            GNUNET_NETWORK_socket_listen (nh,
-                                          UNIX_BACKLOG))
-        {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-                               "listen");
-          GNUNET_SCHEDULER_shutdown ();
-          return;
-        }
-        fh = GNUNET_NETWORK_get_fd (nh);
-        GNUNET_NETWORK_socket_free_memory_only_ (nh);
-      }
-      else
-      {
-        fh = -1;
-      }
-    }
-    else
-    {
-      // not reached
-      GNUNET_assert (0);
-    }
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
   mhd = MHD_start_daemon (MHD_USE_SUSPEND_RESUME | MHD_USE_DUAL_STACK,
                           port,

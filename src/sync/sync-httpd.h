@@ -23,6 +23,7 @@
 
 #include "platform.h"
 #include <microhttpd.h>
+#include <taler/taler_mhd_lib.h>
 #include "sync_database_lib.h"
 
 /**
@@ -120,11 +121,6 @@ struct TM_HandlerContext
   struct GNUNET_AsyncScopeId async_scope_id;
 };
 
-
-/**
- * Should a "Connection: close" header be added to each HTTP response?
- */
-extern int SH_sync_connection_close;
 
 /**
  * Handle to the database backend.

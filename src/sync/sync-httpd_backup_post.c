@@ -22,7 +22,7 @@
 #include "sync-httpd.h"
 #include <gnunet/gnunet_util_lib.h>
 #include "sync-httpd_backup.h"
-#include "sync-httpd_responses.h"
+#include <taler/taler_json_lib.h>
 #include <taler/taler_merchant_service.h>
 #include <taler/taler_signatures.h>
 
@@ -273,8 +273,8 @@ proposal_cb (void *cls,
   if (0 >= qs)
   {
     GNUNET_break (0);
-    bc->resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CREATE_DB_ERROR,
-                                       "Failed to persist payment request in sync database");
+    bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CREATE_DB_ERROR,
+                                     "Failed to persist payment request in sync database");
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return;
   }
@@ -358,8 +358,8 @@ check_payment_cb (void *cls,
     if (0 <= qs)
       return; /* continue as planned */
     GNUNET_break (0);
-    bc->resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
-                                       "Failed to persist payment confirmation in sync database");
+    bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
+                                     "Failed to persist payment confirmation in sync database");
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return; /* continue as planned */
   }
@@ -370,8 +370,8 @@ check_payment_cb (void *cls,
     bc->response_code = MHD_HTTP_PAYMENT_REQUIRED;
     return;
   }
-  bc->resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_TIMEOUT,
-                                     "Timeout awaiting promised payment");
+  bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_TIMEOUT,
+                                   "Timeout awaiting promised payment");
   bc->response_code = MHD_HTTP_REQUEST_TIMEOUT;
 }
 
@@ -431,8 +431,8 @@ begin_payment (struct BackupContext *bc,
     struct MHD_Response *resp;
     int ret;
 
-    resp = SH_RESPONSE_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
-                                   "Failed to check for existing orders in sync database");
+    resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
+                                 "Failed to check for existing orders in sync database");
     ret = MHD_queue_response (bc->con,
                               MHD_HTTP_INTERNAL_SERVER_ERROR,
                               resp);
@@ -503,9 +503,10 @@ handle_database_error (struct BackupContext *bc,
   case SYNC_DB_HARD_ERROR:
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
-    return SH_RESPONSE_reply_internal_error (bc->con,
-                                             TALER_EC_SYNC_DATABASE_FETCH_ERROR,
-                                             "failed to fetch existing record from database");
+    return TALER_MHD_reply_with_error (bc->con,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_SYNC_DATABASE_FETCH_ERROR,
+                                       "failed to fetch existing record from database");
   case SYNC_DB_NO_RESULTS:
     GNUNET_assert (0);
     return MHD_NO;
@@ -563,29 +564,30 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                     &len)) )
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_bad_request (connection,
-                                              TALER_EC_SYNC_BAD_CONTENT_LENGTH,
-                                              (NULL == lens)
-                                              ? "Content-length value missing"
-                                              : "Content-length value malformed");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_BAD_REQUEST,
+                                           TALER_EC_SYNC_BAD_CONTENT_LENGTH,
+                                           (NULL == lens)
+                                           ? "Content-length value missing"
+                                           : "Content-length value malformed");
       }
       if (len / 1024 / 1024 >= SH_upload_limit_mb)
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_rc (connection,
-                                     MHD_HTTP_PAYLOAD_TOO_LARGE,
-                                     TALER_EC_SYNC_BAD_CONTENT_LENGTH,
-                                     "Content-length value not acceptable");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_PAYLOAD_TOO_LARGE,
+                                           TALER_EC_SYNC_BAD_CONTENT_LENGTH,
+                                           "Content-length value not acceptable");
       }
       bc->upload = GNUNET_malloc_large (len);
       if (NULL == bc->upload)
       {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                              "malloc");
-        return SH_RESPONSE_reply_rc (connection,
-                                     MHD_HTTP_PAYLOAD_TOO_LARGE,
-                                     TALER_EC_SYNC_OUT_OF_MEMORY_ON_CONTENT_LENGTH,
-                                     "Server out of memory, try again later");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_PAYLOAD_TOO_LARGE,
+                                           TALER_EC_SYNC_OUT_OF_MEMORY_ON_CONTENT_LENGTH,
+                                           "Server out of memory, try again later");
       }
       bc->upload_size = (size_t) len;
     }
@@ -603,9 +605,10 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                            sizeof (&bc->old_backup_hash))) )
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_bad_request (connection,
-                                              TALER_EC_SYNC_BAD_IF_MATCH,
-                                              "If-Match does not include not a base32-encoded SHA-512 hash");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_BAD_REQUEST,
+                                           TALER_EC_SYNC_BAD_IF_MATCH,
+                                           "If-Match does not include not a base32-encoded SHA-512 hash");
       }
     }
     {
@@ -622,9 +625,10 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                            sizeof (&bc->account_sig))) )
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_bad_request (connection,
-                                              TALER_EC_SYNC_BAD_SYNC_SIGNATURE,
-                                              "Sync-Signature does not include a base32-encoded EdDSA signature");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_BAD_REQUEST,
+                                           TALER_EC_SYNC_BAD_SYNC_SIGNATURE,
+                                           "Sync-Signature does not include a base32-encoded EdDSA signature");
       }
     }
     {
@@ -641,9 +645,10 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                            sizeof (&bc->new_backup_hash))) )
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_bad_request (connection,
-                                              TALER_EC_SYNC_BAD_ETAG,
-                                              "Etag does not include not a base32-encoded SHA-512 hash");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_BAD_REQUEST,
+                                           TALER_EC_SYNC_BAD_ETAG,
+                                           "Etag does not include not a base32-encoded SHA-512 hash");
       }
     }
     /* validate signature */
@@ -661,10 +666,10 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                       &account->eddsa_pub))
       {
         GNUNET_break_op (0);
-        return SH_RESPONSE_reply_rc (connection,
-                                     MHD_HTTP_UNAUTHORIZED,
-                                     TALER_EC_SYNC_INVALID_SIGNATURE,
-                                     "Account signature does not match upload");
+        return TALER_MHD_reply_with_error (connection,
+                                           MHD_HTTP_UNAUTHORIZED,
+                                           TALER_EC_SYNC_INVALID_SIGNATURE,
+                                           "Account signature does not match upload");
       }
     }
     /* get ready to hash (done here as we may go async for payments next) */
@@ -760,9 +765,10 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                             &bc->new_backup_hash))
     {
       GNUNET_break_op (0);
-      return SH_RESPONSE_reply_bad_request (connection,
-                                            TALER_EC_SYNC_INVALID_UPLOAD,
-                                            "Data uploaded does not match Etag promise");
+      return TALER_MHD_reply_with_error (connection,
+                                         MHD_HTTP_BAD_REQUEST,
+                                         TALER_EC_SYNC_INVALID_UPLOAD,
+                                         "Data uploaded does not match Etag promise");
     }
   }
 
