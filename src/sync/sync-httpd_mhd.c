@@ -85,4 +85,4 @@ SH_MHD_handler_agpl_redirect (struct SH_RequestHandler *rh,
 }
 
 
-/* end of taler-exchange-httpd_mhd.c */
+/* end of sync-httpd_mhd.c */

@@ -262,6 +262,21 @@ void
 SYNC_upload_cancel (struct SYNC_UploadOperation *uo);
 
 
+struct SYNC_DownloadDetails
+{
+
+  struct SYNC_AccountSignatureP sig;
+
+  struct GNUNET_HashCode prev_backup_hash;
+
+  struct GNUNET_HashCode curr_backup_hash;
+
+  const void *backup;
+
+  size_t backup_size;
+
+};
+
 /**
  * Function called with the results of a #SYNC_download().
  *
@@ -278,11 +293,8 @@ SYNC_upload_cancel (struct SYNC_UploadOperation *uo);
  */
 typedef void
 (*SYNC_DownloadCallback)(void *cls,
-                         const struct SYNC_AccountPublicKeyP *sig,
-                         const struct GNUNET_HashCode *prev_backup_hash,
-                         const struct GNUNET_HashCode *curr_backup_hash,
-                         size_t backup_size,
-                         const void *backup);
+                         unsigned int http_status,
+                         const struct SYNC_DownloadDetails *dd);
 
 
 /**
