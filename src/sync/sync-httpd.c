@@ -33,7 +33,6 @@
 #define UNIX_BACKLOG 500
 
 
-
 /**
  * Should a "Connection: close" header be added to each HTTP response?
  */

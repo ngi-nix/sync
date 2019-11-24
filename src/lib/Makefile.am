@@ -14,7 +14,8 @@ libsync_la_LDFLAGS = \
   -no-undefined
 
 libsync_la_SOURCES = \
-  sync_api_upload.c
+  sync_api_download.c \
+  sync_api_upload.c 
 
 libsync_la_LIBADD = \
   -lgnunetcurl \
