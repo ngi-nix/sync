@@ -15,12 +15,24 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+bin_PROGRAMS = \
+  sync-dbinit
+
+sync_dbinit_SOURCES = \
+  sync-dbinit.c
+sync_dbinit_LDADD = \
+  $(LIBGCRYPT_LIBS) \
+  $(top_builddir)/src/util/libsyncutil.la \
+  -lsyncdb \
+  -lgnunetutil \
+  -ltalerutil \
+  -ltalerpq
+
+
 lib_LTLIBRARIES = \
   libsyncdb.la
-
 libsyncdb_la_SOURCES = \
   sync_db_plugin.c
-
 libsyncdb_la_LIBADD = \
   $(top_builddir)/src/util/libsyncutil.la \
   -lgnunetpq \
