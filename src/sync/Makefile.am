@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
-pkgcfgdir = $(prefix)/share/taler/config.d/
+pkgcfgdir = $(prefix)/share/sync/config.d/
 
 pkgcfg_DATA = \
   sync.conf
