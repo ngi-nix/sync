@@ -152,10 +152,13 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
   struct SYNC_AccountSignatureP account_sig;
   struct SYNC_UploadOperation *uo;
   CURL *eh;
+  struct curl_slist *job_headers;
 
+  memset (&usp, 0, sizeof (usp));
   usp.purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD);
   usp.purpose.size = htonl (sizeof (usp));
-  usp.old_backup_hash = *prev_backup_hash;
+  if (NULL != prev_backup_hash)
+    usp.old_backup_hash = *prev_backup_hash;
   GNUNET_CRYPTO_hash (backup,
                       backup_size,
                       &usp.new_backup_hash);
@@ -167,13 +170,111 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
     GNUNET_break (0);
     return NULL;
   }
+
+  /* setup our HTTP headers */
+  job_headers = NULL;
+  {
+    struct curl_slist *ext;
+    char *val;
+    char *hdr;
+
+    /* Set Sync-Signature header */
+    val = GNUNET_STRINGS_data_to_string_alloc (&account_sig,
+                                               sizeof (account_sig));
+    GNUNET_asprintf (&hdr,
+                     "Sync-Signature: %s",
+                     val);
+    GNUNET_free (val);
+    ext = curl_slist_append (job_headers,
+                             hdr);
+    GNUNET_free (hdr);
+    if (NULL == ext)
+    {
+      GNUNET_break (0);
+      curl_slist_free_all (job_headers);
+      return NULL;
+    }
+    job_headers = ext;
+
+    /* set Etag header */
+    val = GNUNET_STRINGS_data_to_string_alloc (&usp.new_backup_hash,
+                                               sizeof (struct GNUNET_HashCode));
+    GNUNET_asprintf (&hdr,
+                     "Etag: %s",
+                     val);
+    GNUNET_free (val);
+    ext = curl_slist_append (job_headers,
+                             hdr);
+    GNUNET_free (hdr);
+    if (NULL == ext)
+    {
+      GNUNET_break (0);
+      curl_slist_free_all (job_headers);
+      return NULL;
+    }
+    job_headers = ext;
+
+    /* Setup If-Match header */
+    if (NULL != prev_backup_hash)
+    {
+      val = GNUNET_STRINGS_data_to_string_alloc (&usp.old_backup_hash,
+                                                 sizeof (struct
+                                                         GNUNET_HashCode));
+      GNUNET_asprintf (&hdr,
+                       "If-Match: %s",
+                       val);
+      GNUNET_free (val);
+      ext = curl_slist_append (job_headers,
+                               hdr);
+      GNUNET_free (hdr);
+      if (NULL == ext)
+      {
+        GNUNET_break (0);
+        curl_slist_free_all (job_headers);
+        return NULL;
+      }
+      job_headers = ext;
+    }
+  }
+  /* Finished setting up headers */
+
   uo = GNUNET_new (struct SYNC_UploadOperation);
-  // FIXME: build uo->url
+  {
+    char *path;
+    char *account_s;
+    struct SYNC_AccountPublicKeyP pub;
+
+    GNUNET_CRYPTO_eddsa_key_get_public (&priv->eddsa_priv,
+                                        &pub.eddsa_pub);
+    account_s = GNUNET_STRINGS_data_to_string_alloc (&pub,
+                                                     sizeof (pub));
+    GNUNET_asprintf (&path,
+                     "backups/%s",
+                     account_s);
+    GNUNET_free (account_s);
+    uo->url = (GNUNET_YES == payment_requested)
+              ? TALER_url_join (base_url,
+                                path,
+                                "pay",
+                                "y",
+                                (NULL != paid_order_id)
+                                ? "paying"
+                                : NULL,
+                                paid_order_id,
+                                NULL)
+              : TALER_url_join (base_url,
+                                path,
+                                (NULL != paid_order_id)
+                                ? "paying"
+                                : NULL,
+                                paid_order_id,
+                                NULL);
+    GNUNET_free (path);
+  }
   uo->ctx = ctx;
   uo->cb = cb;
   uo->cb_cls = cb_cls;
   eh = SYNC_curl_easy_get_ (uo->url);
-  // FIXME: set headers!
   GNUNET_assert (CURLE_OK ==
                  curl_easy_setopt (eh,
                                    CURLOPT_POSTFIELDS,
@@ -184,9 +285,10 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
                                    (long) backup_size));
   uo->job = GNUNET_CURL_job_add_raw (ctx,
                                      eh,
-                                     GNUNET_NO,
+                                     job_headers,
                                      &handle_upload_finished,
                                      uo);
+  curl_slist_free_all (job_headers);
   return uo;
 }
 
