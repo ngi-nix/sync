@@ -45,6 +45,30 @@ libsynctesting_la_LIBADD = \
   -ltalertesting \
   $(XLIB)
 
+check_PROGRAMS = \
+  test_sync_api
+
+TESTS = \
+  $(check_PROGRAMS)
+
+test_sync_api_SOURCES = \
+  test_sync_api.c
+test_sync_api_LDADD = \
+  libsync.la \
+  libsynctesting.la \
+  -ltalertesting \
+  -ltalermerchanttesting \
+  -ltalerfakebank \
+  -ltalerbank \
+  -ltalerexchange \
+  -ltalermerchant \
+  -ltalerjson \
+  -ltalerutil \
+  -lgnunetjson \
+  -lgnunetcurl \
+  -lgnunetutil \
+  -ljansson
+
 if HAVE_LIBCURL
 libsync_la_LIBADD += -lcurl
 else

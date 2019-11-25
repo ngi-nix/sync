@@ -31,6 +31,7 @@
 #include <taler/taler_bank_service.h>
 #include <taler/taler_fakebank_lib.h>
 #include <taler/taler_testing_lib.h>
+#include <taler/taler_merchant_testing_lib.h>
 #include <taler/taler_error_codes.h>
 #include "sync_service.h"
 #include "sync_testing_lib.h"
