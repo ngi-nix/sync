@@ -1,1 +1,3 @@
 test_sync_api
+auditor.in
+test_sync_api_home/.local/share/taler/exchange/live-keys/
