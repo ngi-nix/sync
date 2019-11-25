@@ -161,7 +161,7 @@ struct SYNC_UploadDetails
       /**
        * Hash over @e existing_backup.
        */
-      const struct GNUNET_HashCode *existing_backup_hash;
+      struct GNUNET_HashCode existing_backup_hash;
 
       /**
        * Number of bytes in @e existing_backup.

@@ -12,15 +12,15 @@ lib_LTLIBRARIES = \
 libsync_la_LDFLAGS = \
   -version-info 0:0:0 \
   -no-undefined
-
 libsync_la_SOURCES = \
   sync_api_curl_defaults.c sync_api_curl_defaults.h \
   sync_api_download.c \
   sync_api_upload.c 
-
 libsync_la_LIBADD = \
   -lgnunetcurl \
   -lgnunetjson \
+  -ltalerjson \
+  -ltalerutil \
   -lgnunetutil \
   -ljansson \
   $(XLIB)

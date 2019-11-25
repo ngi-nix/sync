@@ -29,6 +29,7 @@
 #include <gnunet/gnunet_util_lib.h>
 #include <gnunet/gnunet_curl_lib.h>
 #include <taler/taler_signatures.h>
+#include <taler/taler_json_lib.h>
 #include "sync_service.h"
 #include "sync_api_curl_defaults.h"
 
@@ -64,6 +65,15 @@ struct SYNC_UploadOperation
    */
   void *cb_cls;
 
+  /**
+   * Payment URI we received from the service, or NULL.
+   */
+  char *pay_uri;
+
+  /**
+   * Hash of the data we are uploading.
+   */
+  struct GNUNET_HashCode new_upload_hash;
 };
 
 
@@ -83,28 +93,132 @@ handle_upload_finished (void *cls,
 {
   struct SYNC_UploadOperation *uo = cls;
   enum TALER_ErrorCode ec = TALER_EC_INVALID;
+  struct SYNC_UploadDetails ud;
+  struct SYNC_UploadDetails *udp;
 
   uo->job = NULL;
+  udp = NULL;
+  memset (&ud, 0, sizeof (ud));
   switch (response_code)
   {
   case 0:
     break;
-  case MHD_HTTP_OK:
+  case MHD_HTTP_NO_CONTENT:
+    ud.us = SYNC_US_SUCCESS;
+    ud.details.curr_backup_hash = &uo->new_upload_hash;
+    udp = &ud;
+    ec = TALER_EC_NONE;
     break;
-    // FIXME: handle all cases...
+  case MHD_HTTP_NOT_MODIFIED:
+    ud.us = SYNC_US_SUCCESS;
+    ud.details.curr_backup_hash = &uo->new_upload_hash;
+    udp = &ud;
+    ec = TALER_EC_NONE;
+    break;
+  case MHD_HTTP_BAD_REQUEST:
+    GNUNET_break (0);
+    ec = TALER_JSON_get_error_code2 (data,
+                                     data_size);
+    break;
+  case MHD_HTTP_PAYMENT_REQUIRED:
+    ud.us = SYNC_US_PAYMENT_REQUIRED;
+    ud.details.payment_request = uo->pay_uri;
+    udp = &ud;
+    ec = TALER_EC_NONE;
+    break;
+  case MHD_HTTP_FORBIDDEN:
+    GNUNET_break (0);
+    ec = TALER_JSON_get_error_code2 (data,
+                                     data_size);
+    break;
+  case MHD_HTTP_CONFLICT:
+    ud.us = SYNC_US_CONFLICTING_BACKUP;
+    GNUNET_CRYPTO_hash (data,
+                        data_size,
+                        &ud.details.recovered_backup.existing_backup_hash);
+    ud.details.recovered_backup.existing_backup_size
+      = data_size;
+    ud.details.recovered_backup.existing_backup
+      = data;
+    udp = &ud;
+    ec = TALER_EC_NONE;
+    break;
+  case MHD_HTTP_GONE:
+    ec = TALER_JSON_get_error_code2 (data,
+                                     data_size);
+    break;
+  case MHD_HTTP_LENGTH_REQUIRED:
+    GNUNET_break (0);
+    break;
+  case MHD_HTTP_REQUEST_ENTITY_TOO_LARGE:
+    ec = TALER_JSON_get_error_code2 (data,
+                                     data_size);
+    break;
+  case MHD_HTTP_TOO_MANY_REQUESTS:
+    ec = TALER_JSON_get_error_code2 (data,
+                                     data_size);
+    break;
   }
-
   if (NULL != uo->cb)
   {
     uo->cb (uo->cb_cls,
             ec,
             response_code,
-            NULL);
+            udp);
     uo->cb = NULL;
   }
   SYNC_upload_cancel (uo);
 }
 
+
+/**
+ * Handle HTTP header received by curl.
+ *
+ * @param buffer one line of HTTP header data
+ * @param size size of an item
+ * @param nitems number of items passed
+ * @param userdata our `struct SYNC_DownloadOperation *`
+ * @return `size * nitems`
+ */
+static size_t
+handle_header (char *buffer,
+               size_t size,
+               size_t nitems,
+               void *userdata)
+{
+  struct SYNC_UploadOperation *uo = userdata;
+  size_t total = size * nitems;
+  char *ndup;
+  const char *hdr_type;
+  char *hdr_val;
+
+  ndup = GNUNET_strndup (buffer,
+                         total);
+  hdr_type = strtok (ndup,
+                     ":");
+  if (NULL == hdr_type)
+  {
+    GNUNET_free (ndup);
+    return total;
+  }
+  hdr_val = strtok (NULL,
+                    "");
+  if (NULL == hdr_val)
+  {
+    GNUNET_free (ndup);
+    return total;
+  }
+  if (' ' == *hdr_val)
+    hdr_val++;
+  if (0 == strcasecmp (hdr_type,
+                       "Taler"))
+  {
+    /* found payment URI we care about! */
+    uo->pay_uri = GNUNET_strdup (hdr_val);
+  }
+  GNUNET_free (ndup);
+  return total;
+}
 
 
 /**
@@ -239,6 +353,7 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
   /* Finished setting up headers */
 
   uo = GNUNET_new (struct SYNC_UploadOperation);
+  uo->new_upload_hash = usp.new_backup_hash;
   {
     char *path;
     char *account_s;
@@ -283,6 +398,14 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
                  curl_easy_setopt (eh,
                                    CURLOPT_POSTFIELDSIZE,
                                    (long) backup_size));
+  GNUNET_assert (CURLE_OK ==
+                 curl_easy_setopt (eh,
+                                   CURLOPT_HEADERFUNCTION,
+                                   &handle_header));
+  GNUNET_assert (CURLE_OK ==
+                 curl_easy_setopt (eh,
+                                   CURLOPT_HEADERDATA,
+                                   uo));
   uo->job = GNUNET_CURL_job_add_raw (ctx,
                                      eh,
                                      job_headers,
@@ -308,6 +431,7 @@ SYNC_upload_cancel (struct SYNC_UploadOperation *uo)
     GNUNET_CURL_job_cancel (uo->job);
     uo->job = NULL;
   }
+  GNUNET_free (uo->pay_uri);
   GNUNET_free (uo->url);
   GNUNET_free (uo);
 }

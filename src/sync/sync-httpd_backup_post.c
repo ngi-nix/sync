@@ -667,7 +667,7 @@ sync_handler_backup_post (struct MHD_Connection *connection,
       {
         GNUNET_break_op (0);
         return TALER_MHD_reply_with_error (connection,
-                                           MHD_HTTP_UNAUTHORIZED,
+                                           MHD_HTTP_FORBIDDEN,
                                            TALER_EC_SYNC_INVALID_SIGNATURE,
                                            "Account signature does not match upload");
       }
