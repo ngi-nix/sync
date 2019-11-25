@@ -16,6 +16,7 @@ sync_httpd_SOURCES = \
   sync-httpd_mhd.c sync-httpd_mhd.h \
   sync-httpd_terms.c sync-httpd_terms.h
 sync_httpd_LDADD = \
+  $(top_builddir)/src/util/libsyncutil.la \
   $(top_builddir)/src/syncdb/libsyncdb.la \
   -lmicrohttpd \
   -ljansson \

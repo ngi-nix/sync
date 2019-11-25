@@ -88,10 +88,11 @@ main (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
-  /* force linker to link against libtalerutil; if we do
-     not do this, the linker may "optimize" libtalerutil
-     away and skip #SYNC_OS_init(), which we do need */
-  (void) SYNC_project_data_default ();
+  /* FIRST get the libtalerutil initialization out
+     of the way. Then throw that one away, and force
+     the SYNC defaults to be used! */
+  (void) TALER_project_data_default ();
+  GNUNET_OS_init (SYNC_project_data_default ());
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_log_setup ("sync-dbinit",
                                    "INFO",

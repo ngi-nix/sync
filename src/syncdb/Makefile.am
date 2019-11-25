@@ -24,6 +24,7 @@ sync_dbinit_LDADD = \
   $(LIBGCRYPT_LIBS) \
   $(top_builddir)/src/util/libsyncutil.la \
   -lsyncdb \
+  -ltalerutil \
   -lgnunetutil
 
 lib_LTLIBRARIES = \
@@ -45,7 +46,6 @@ libsync_plugin_db_postgres_la_SOURCES = \
 libsync_plugin_db_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libsync_plugin_db_postgres_la_LDFLAGS = \
-  $(top_builddir)/src/util/libsyncutil.la \
   $(TALER_PLUGIN_LDFLAGS) \
   -lgnunetpq \
   -lpq \

@@ -21,6 +21,7 @@
 #include "platform.h"
 #include <microhttpd.h>
 #include <gnunet/gnunet_util_lib.h>
+#include "sync_util.h"
 #include "sync-httpd.h"
 #include "sync-httpd_mhd.h"
 #include "sync_database_lib.h"
@@ -616,6 +617,11 @@ main (int argc,
     GNUNET_GETOPT_OPTION_END
   };
 
+  /* FIRST get the libtalerutil initialization out
+     of the way. Then throw that one away, and force
+     the SYNC defaults to be used! */
+  (void) TALER_project_data_default ();
+  GNUNET_OS_init (SYNC_project_data_default ());
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv,
                           "sync-httpd",
