@@ -7,7 +7,8 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libsync.la
+  libsync.la \
+  libsynctesting.la
 
 libsync_la_LDFLAGS = \
   -version-info 0:0:0 \
@@ -23,6 +24,25 @@ libsync_la_LIBADD = \
   -ltalerutil \
   -lgnunetutil \
   -ljansson \
+  $(XLIB)
+
+libsynctesting_la_LDFLAGS = \
+  -version-info 0:0:0 \
+  -no-undefined
+libsynctesting_la_SOURCES = \
+  testing_api_cmd_backup_download.c \
+  testing_api_cmd_backup_upload.c \
+  testing_api_helpers.c
+libsynctesting_la_LIBADD = \
+  libsync.la \
+  -ltalerexchange \
+  -ltalerjson \
+  -ltalerutil \
+  -lgnunetcurl \
+  -lgnunetjson \
+  -lgnunetutil \
+  -ljansson \
+  -ltalertesting \
   $(XLIB)
 
 if HAVE_LIBCURL
