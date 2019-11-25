@@ -24,10 +24,7 @@ sync_dbinit_LDADD = \
   $(LIBGCRYPT_LIBS) \
   $(top_builddir)/src/util/libsyncutil.la \
   -lsyncdb \
-  -lgnunetutil \
-  -ltalerutil \
-  -ltalerpq
-
+  -lgnunetutil
 
 lib_LTLIBRARIES = \
   libsyncdb.la
@@ -65,8 +62,7 @@ test_sync_db_postgres_LDFLAGS = \
   libsyncdb.la \
   -lgnunetutil \
   -lgnunetpq \
-  -ltalerutil \
-  -ltalerpq
+  -ltalerutil
 
 TESTS = \
   test_sync_db-postgres

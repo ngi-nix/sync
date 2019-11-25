@@ -19,7 +19,6 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include <taler/taler_util.h>
 #include <gnunet/gnunet_util_lib.h>
 #include "sync_util.h"
 #include "sync_database_lib.h"
@@ -91,7 +90,7 @@ main (int argc,
 
   /* force linker to link against libtalerutil; if we do
      not do this, the linker may "optimize" libtalerutil
-     away and skip #TALER_OS_init(), which we do need */
+     away and skip #SYNC_OS_init(), which we do need */
   (void) SYNC_project_data_default ();
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_log_setup ("sync-dbinit",

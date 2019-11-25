@@ -18,7 +18,6 @@
  * @brief testcase for sync postgres db plugin
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include <gnunet/gnunet_util_lib.h>
 #include <taler/taler_util.h>
