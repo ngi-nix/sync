@@ -16,7 +16,7 @@ libsync_la_LDFLAGS = \
 libsync_la_SOURCES = \
   sync_api_curl_defaults.c sync_api_curl_defaults.h \
   sync_api_download.c \
-  sync_api_upload.c 
+  sync_api_upload.c
 libsync_la_LIBADD = \
   -lgnunetcurl \
   -lgnunetjson \
@@ -32,7 +32,10 @@ libsynctesting_la_LDFLAGS = \
 libsynctesting_la_SOURCES = \
   testing_api_cmd_backup_download.c \
   testing_api_cmd_backup_upload.c \
-  testing_api_helpers.c
+  testing_api_helpers.c \
+  testing_api_trait_account_pub.c \
+  testing_api_trait_account_priv.c \
+  testing_api_trait_hash.c
 libsynctesting_la_LIBADD = \
   libsync.la \
   -ltalerexchange \

@@ -26,7 +26,99 @@
 
 #include "sync_service.h"
 #include <gnunet/gnunet_json_lib.h>
+#include <taler/taler_testing_lib.h>
 #include <microhttpd.h>
+
+/**
+ * Index used in #SYNC_TESTING_get_trait_hash() for the current hash.
+ */
+#define SYNC_TESTING_TRAIT_HASH_CURRENT 0
+
+/**
+ * Index used in #SYNC_TESTING_get_trait_hash() for the previous hash.
+ */
+#define SYNC_TESTING_TRAIT_HASH_PREVIOUS 1
+
+
+/**
+ * Obtain a hash from @a cmd.
+ *
+ * @param cmd command to extract the number from.
+ * @param index the number's index number, #SYNC_TESTING_TRAIT_HASH_CURRENT or
+ *          #SYNC_TESTING_TRAIT_HASH_PREVIOUS
+ * @param h[out] set to the hash coming from @a cmd.
+ * @return #GNUNET_OK on success.
+ */
+int
+SYNC_TESTING_get_trait_hash (const struct TALER_TESTING_Command *cmd,
+                             unsigned int index,
+                             const struct GNUNET_HashCode **h);
+
+
+/**
+ * Offer a hash.
+ *
+ * @param index the number's index number.
+ * @param h the hash to offer.
+ * @return #GNUNET_OK on success.
+ */
+struct TALER_TESTING_Trait
+TALER_TESTING_make_trait_hash (unsigned int index,
+                               const struct GNUNET_HashCode *h);
+
+
+/**
+ * Obtain an account public key from @a cmd.
+ *
+ * @param cmd command to extract the public key from.
+ * @param index usually 0
+ * @param pub[out] set to the account public key used in @a cmd.
+ * @return #GNUNET_OK on success.
+ */
+int
+SYNC_TESTING_get_trait_account_pub (const struct TALER_TESTING_Command *cmd,
+                                    unsigned int index,
+                                    const struct SYNC_AccountPublicKeyP **pub);
+
+
+/**
+ * Offer an account public key.
+ *
+ * @param index usually zero
+ * @param h the account_pub to offer.
+ * @return #GNUNET_OK on success.
+ */
+struct TALER_TESTING_Trait
+TALER_TESTING_make_trait_account_pub (unsigned int index,
+                                      const struct SYNC_AccountPublicKeyP *h);
+
+
+/**
+ * Obtain an account private key from @a cmd.
+ *
+ * @param cmd command to extract the number from.
+ * @param index must be 0
+ * @param priv[out] set to the account private key used in @a cmd.
+ * @return #GNUNET_OK on success.
+ */
+int
+SYNC_TESTING_get_trait_account_priv (const struct TALER_TESTING_Command *cmd,
+                                     unsigned int index,
+                                     const struct
+                                     SYNC_AccountPrivateKeyP **priv);
+
+
+/**
+ * Offer an account private key.
+ *
+ * @param index usually zero
+ * @param priv the account_priv to offer.
+ * @return #GNUNET_OK on success.
+ */
+struct TALER_TESTING_Trait
+TALER_TESTING_make_trait_account_priv (unsigned int index,
+                                       const struct
+                                       SYNC_AccountPrivateKeyP *priv);
 
 
 /**
@@ -57,6 +149,19 @@ TALER_TESTING_prepare_sync (const char *config_filename);
 
 
 /**
+ * Make the "backup download" command for a non-existent upload.
+ *
+ * @param label command label
+ * @param sync_url base URL of the sync serving
+ *        the policy store request.
+ * @return the command
+ */
+struct TALER_TESTING_Command
+SYNC_TESTING_cmd_backup_nx (const char *label,
+                            const char *sync_url);
+
+
+/**
  * Make the "backup download" command.
  *
  * @param label command label
@@ -71,4 +176,5 @@ SYNC_TESTING_cmd_backup_download (const char *label,
                                   const char *sync_url,
                                   unsigned int http_status,
                                   const char *upload_ref);
+
 #endif
