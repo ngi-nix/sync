@@ -35,6 +35,11 @@ static int global_ret;
 static int reset_db;
 
 /**
+ * -g option: do GC reset
+ */
+static int gc_db;
+
+/**
  * Main function that will be run.
  *
  * @param cls closure
@@ -64,6 +69,20 @@ run (void *cls,
     SYNC_DB_plugin_unload (plugin);
     plugin = SYNC_DB_plugin_load (cfg);
   }
+  if (gc_db)
+  {
+    struct GNUNET_TIME_Absolute now;
+    struct GNUNET_TIME_Absolute ancient;
+
+    now = GNUNET_TIME_absolute_get ();
+    ancient = GNUNET_TIME_absolute_subtract (now,
+                                             GNUNET_TIME_relative_multiply (
+                                               GNUNET_TIME_UNIT_YEARS,
+                                               6));
+    plugin->gc (plugin->cls,
+                now,
+                ancient);
+  }
   SYNC_DB_plugin_unload (plugin);
 }
 
@@ -85,6 +104,10 @@ main (int argc,
                                "reset",
                                "reset database (DANGEROUS: all existing data is lost!)",
                                &reset_db),
+    GNUNET_GETOPT_option_flag ('g',
+                               "garbagecollect",
+                               "remove state data from database",
+                               &gc_db),
     GNUNET_GETOPT_OPTION_END
   };
 
