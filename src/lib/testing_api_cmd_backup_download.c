@@ -166,7 +166,7 @@ backup_download_run (void *cls,
     if (GNUNET_OK !=
         SYNC_TESTING_get_trait_hash (upload_cmd,
                                      SYNC_TESTING_TRAIT_HASH_PREVIOUS,
-                                     &bds->upload_hash))
+                                     &bds->prev_upload_hash))
     {
       GNUNET_break (0);
       TALER_TESTING_interpreter_fail (bds->is);

@@ -219,6 +219,19 @@ run (void *cls,
                                     MHD_HTTP_NO_CONTENT,
                                     "Test-1",
                                     strlen ("Test-1")),
+    /* now updated upload should succeed */
+    SYNC_TESTING_cmd_backup_upload ("backup-upload-3",
+                                    sync_url,
+                                    "backup-upload-2",
+                                    SYNC_TESTING_UO_NONE,
+                                    MHD_HTTP_NO_CONTENT,
+                                    "Test-3",
+                                    strlen ("Test-3")),
+    /* Test download: no backup exists */
+    SYNC_TESTING_cmd_backup_download ("download-3",
+                                      sync_url,
+                                      MHD_HTTP_OK,
+                                      "backup-upload-3"),
 
     TALER_TESTING_cmd_end ()
   };

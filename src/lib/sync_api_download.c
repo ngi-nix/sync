@@ -203,7 +203,7 @@ handle_header (char *buffer,
     return total;
   }
   hdr_val = strtok (NULL,
-                    "");
+                    "\n\r");
   if (NULL == hdr_val)
   {
     GNUNET_free (ndup);
@@ -270,7 +270,7 @@ SYNC_download (struct GNUNET_CURL_Context *ctx,
   pub_str = GNUNET_STRINGS_data_to_string_alloc (pub,
                                                  sizeof (*pub));
   GNUNET_asprintf (&download->url,
-                   "%s%sbackup/%s",
+                   "%s%sbackups/%s",
                    base_url,
                    '/' == base_url[strlen (base_url) - 1]
                    ? ""

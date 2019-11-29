@@ -33,8 +33,8 @@
  * @return MHD result code
  */
 int
-sync_handler_backup_get (struct MHD_Connection *connection,
-                         const struct SYNC_AccountPublicKeyP *account)
+SH_backup_get (struct MHD_Connection *connection,
+               const struct SYNC_AccountPublicKeyP *account)
 {
   struct GNUNET_HashCode backup_hash;
   enum SYNC_DB_QueryStatus qs;

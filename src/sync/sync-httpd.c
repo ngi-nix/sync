@@ -243,19 +243,19 @@ url_handler (void *cls,
     if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_GET))
     {
-      return sync_handler_backup_get (connection,
-                                      &account_pub);
+      return SH_backup_get (connection,
+                            &account_pub);
     }
     if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_POST))
     {
       int ret;
 
-      ret = sync_handler_backup_post (connection,
-                                      con_cls,
-                                      &account_pub,
-                                      upload_data,
-                                      upload_data_size);
+      ret = SH_backup_post (connection,
+                            con_cls,
+                            &account_pub,
+                            upload_data,
+                            upload_data_size);
       hc = *con_cls;
       if (NULL != hc)
       {

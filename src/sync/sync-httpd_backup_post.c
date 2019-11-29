@@ -599,11 +599,11 @@ handle_database_error (struct BackupContext *bc,
  * @return MHD result code
  */
 int
-sync_handler_backup_post (struct MHD_Connection *connection,
-                          void **con_cls,
-                          const struct SYNC_AccountPublicKeyP *account,
-                          const char *upload_data,
-                          size_t *upload_data_size)
+SH_backup_post (struct MHD_Connection *connection,
+                void **con_cls,
+                const struct SYNC_AccountPublicKeyP *account,
+                const char *upload_data,
+                size_t *upload_data_size)
 {
   struct BackupContext *bc;
 
