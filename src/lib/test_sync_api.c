@@ -156,59 +156,6 @@ static char *auditor_url;
     subject)
 
 
-static struct GNUNET_CONTAINER_MultiHashMap *interned_strings;
-
-static const char *
-intern (const char *str)
-{
-  struct GNUNET_HashCode hash;
-  const char *hs;
-
-  if (NULL == interned_strings)
-    interned_strings = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  GNUNET_assert (NULL != interned_strings);
-  GNUNET_CRYPTO_hash (str, strlen (str), &hash);
-  hs = GNUNET_CONTAINER_multihashmap_get (interned_strings, &hash);
-  if (NULL != hs)
-    return hs;
-  hs = GNUNET_strdup (str);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
-                   interned_strings,
-                   &hash,
-                   (void *) hs,
-                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  return hs;
-}
-
-
-#define BUF_SZ 512
-
-static const char *
-merchant_url_internal (const char *instance_id)
-{
-  char buf[BUF_SZ];
-  if (NULL == instance_id)
-    GNUNET_assert (0 < snprintf (buf, BUF_SZ, "%s", merchant_url));
-  else
-    GNUNET_assert (0 < snprintf (buf, BUF_SZ, "%sinstances/%s/", merchant_url,
-                                 instance_id));
-  return intern (buf);
-}
-
-
-static const char *
-merchant_url_external (const char *instance_id)
-{
-  char buf[BUF_SZ];
-  if (NULL == instance_id)
-    GNUNET_assert (0 < snprintf (buf, BUF_SZ, "%spublic/", merchant_url));
-  else
-    GNUNET_assert (0 < snprintf (buf, BUF_SZ, "%spublic/instances/%s/",
-                                 merchant_url, instance_id));
-  return intern (buf);
-}
-
-
 /**
  * Main function that will tell the interpreter what commands to
  * run.
