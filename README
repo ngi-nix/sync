@@ -1,36 +1,77 @@
-TALER MERCHANT
-
-1. DESCRIPTION
-
-Under the name 'Taler merchant' there are two main objectives: one is to
-implement a common helper (called 'backend') for all the existing merchants
-willing to integrate Taler in their existing online shops, whereas the other
-objective is implementing some demonstrator shops which use that backend.
-
-2. INNOVATIVE ASPECTS
-
-This component allows merchants to receive payments without invading the
-customers' privacy. Of course, this applies mostly for digital goods, as the
-merchant does not need to know the customer's physical address.
-
-3. PLANNING/PERSPECTIVES
-
-Since the main component's part is the backend, and it is supposed to work with
-preexisting shops, a massive backend's testing with existing shop portals should
-be accomplished.
+About SYNC
+----------
 
 
-4. DEPENDENCIES
+Sync implements an HTTP server that allows clients to backup data.
+Envisioned use-cases are the creation of backups for Taler wallets and
+(GnuPG) key rings and other small but essential sensitive information.
 
-libjansson: MIT License, AGPL- and LGPL-Compatible, owned by Petri Lehtinen and other individuals
-libgcrypt: LGPL, owned by Free Software Foundation
-postgresql: PostgreSQL License, AGPL- and LGPL-Compatible, owned by The PostgreSQL
-Global Development Group
-libgnunetutil (in all of its variants): GPLv3+, owned by GNUnet e.V.
-PHP:  PHP License, AGPL- and LGPL-Compatible, owned by The PHP Group
 
-5. DIRECTORY STRUCTURE
+Accountability:
+===============
 
-- 'src/' contains the "backend", a C piece of software which implements cryto routines
-  and communication with the 'exchange'
- 'doc/' contains documentation files, like TeXinfo
+Client accounts are identified by a public key. For each client, at
+most one backup can be stored at any given point in time.  To create
+an account, the service may require payment using GNU Taler when the
+first upload is attempted.
+
+
+Availability:
+=============
+
+The Sync service may impose a limit on the maximum size of the backup
+that is supported.  The /terms API lists the specific terms of
+service, including the maximum size and the payment required for a
+year of backup service.
+
+
+Integrity:
+==========
+
+All uploads must be signed with the respective private key of the
+account.  Clients must know their public key to download the latest
+backup.
+
+
+Confidentiality:
+================
+
+Clients are responsible for confidentiality and key management.
+All data uploaded should be encrypted by the client first.
+For key management, please consider Anastasis.
+
+
+Consistency:
+============
+
+Uploads that replace an existing backup must acknowledge the previous
+version by including the hash of the previous version in the backup
+request. This ensures that multiple clients working on the same
+account never accidentally overwrite data from another client.
+
+
+Usability:
+==========
+
+Sync uses a simple REST-based API documented at
+https://docs.taler.net/.
+
+
+Operation:
+==========
+
+Sync does at this time not include HTTPS support. While this could
+be trivially added, we expect Sync to be run behind a reverse proxy
+that terminates TLS.
+
+At this time, Sync only works with a Postgres database. Other database
+backends could easily be written in the future.
+
+
+License:
+========
+
+Sync is released under the Affero GPL v3 or later.
+
+The primary source code is maintained at https://git.taler.net/sync.git
+by the GNU Taler team.
