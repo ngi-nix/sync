@@ -22,4 +22,5 @@ EXTRA_DIST = \
  COPYING.AGPL \
  contrib/gnunet.tag \
  contrib/uncrustify.cfg \
- contrib/uncrustify_precommit
+ contrib/uncrustify_precommit \
+ Doxyfile
