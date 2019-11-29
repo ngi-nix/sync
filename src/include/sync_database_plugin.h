@@ -34,6 +34,11 @@
 enum SYNC_DB_QueryStatus
 {
   /**
+   * Client claimed to be updating an existing backup, but we have none.
+   */
+  SYNC_DB_OLD_BACKUP_MISSING = -5,
+
+  /**
    * Update failed because the old backup hash does not match what we previously had in the DB.
    */
   SYNC_DB_OLD_BACKUP_MISSMATCH = -4,

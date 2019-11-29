@@ -158,6 +158,12 @@ handle_upload_finished (void *cls,
     ec = TALER_JSON_get_error_code2 (data,
                                      data_size);
     break;
+  case MHD_HTTP_INTERNAL_SERVER_ERROR:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Internal server error: `%.*s\n",
+                (int) data_size,
+                (const char *) data);
+    break;
   }
   if (NULL != uo->cb)
   {

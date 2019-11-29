@@ -196,7 +196,7 @@ url_handler (void *cls,
     /* We only read the correlation ID on the first callback for every client */
     correlation_id = MHD_lookup_connection_value (connection,
                                                   MHD_HEADER_KIND,
-                                                  "sync-Correlation-Id");
+                                                  "Sync-Correlation-Id");
     if ((NULL != correlation_id) &&
         (GNUNET_YES != is_valid_correlation_id (correlation_id)))
     {
@@ -249,11 +249,21 @@ url_handler (void *cls,
     if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_POST))
     {
-      return sync_handler_backup_post (connection,
-                                       con_cls,
-                                       &account_pub,
-                                       upload_data,
-                                       upload_data_size);
+      int ret;
+
+      ret = sync_handler_backup_post (connection,
+                                      con_cls,
+                                      &account_pub,
+                                      upload_data,
+                                      upload_data_size);
+      hc = *con_cls;
+      if (NULL != hc)
+      {
+        /* Store the async context ID, so we can restore it if
+         * we get another callack for this request. */
+        hc->async_scope_id = aid;
+      }
+      return ret;
     }
   }
   for (unsigned int i = 0; NULL != handlers[i].url; i++)
@@ -409,13 +419,23 @@ SH_trigger_daemon ()
   if (NULL != mhd_task)
   {
     GNUNET_SCHEDULER_cancel (mhd_task);
-    mhd_task = NULL;
-    run_daemon (NULL);
+    mhd_task = GNUNET_SCHEDULER_add_now (&run_daemon,
+                                         NULL);
   }
   else
   {
     triggered = 1;
   }
+}
+
+
+/**
+ * Kick GNUnet Curl scheduler to begin curl interactions.
+ */
+void
+SH_trigger_curl ()
+{
+  GNUNET_CURL_gnunet_scheduler_reschedule (&rc);
 }
 
 

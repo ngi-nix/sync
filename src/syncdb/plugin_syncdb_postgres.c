@@ -616,7 +616,7 @@ postgres_update_backup (void *cls,
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
     GNUNET_break (0);
-    return SYNC_DB_NO_RESULTS;
+    return SYNC_DB_OLD_BACKUP_MISSING;
   case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
   case GNUNET_DB_STATUS_HARD_ERROR:

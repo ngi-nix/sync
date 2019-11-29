@@ -162,4 +162,11 @@ void
 SH_trigger_daemon (void);
 
 
+/**
+ * Kick GNUnet Curl scheduler to begin curl interactions.
+ */
+void
+SH_trigger_curl (void);
+
+
 #endif

@@ -45,6 +45,12 @@ sync_handler_backup_get (struct MHD_Connection *connection,
                               &backup_hash);
   switch (qs)
   {
+  case SYNC_DB_OLD_BACKUP_MISSING:
+    GNUNET_break (0);
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       "unexpected return status (backup missing)");
   case SYNC_DB_OLD_BACKUP_MISSMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
@@ -170,6 +176,12 @@ SH_return_backup (struct MHD_Connection *connection,
                              &backup);
   switch (qs)
   {
+  case SYNC_DB_OLD_BACKUP_MISSING:
+    GNUNET_break (0);
+    return TALER_MHD_reply_with_error (connection,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       "unexpected return status (backup missing)");
   case SYNC_DB_OLD_BACKUP_MISSMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,

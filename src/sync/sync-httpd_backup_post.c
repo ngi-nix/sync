@@ -268,7 +268,35 @@ proposal_cb (void *cls,
   GNUNET_CONTAINER_DLL_remove (bc_head,
                                bc_tail,
                                bc);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Resuming connection with order `%s'\n",
+              order_id);
   MHD_resume_connection (bc->con);
+  SH_trigger_daemon ();
+  if (MHD_HTTP_OK != http_status)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Backend returned status %u/%u\n",
+                http_status,
+                (unsigned int) ec);
+    GNUNET_break (0);
+    bc->resp = TALER_MHD_make_json_pack ("{s:I, s:s, s:I, s:I}",
+                                         "code",
+                                         (json_int_t)
+                                         TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR,
+                                         "hint",
+                                         "Failed to setup order with merchant backend",
+                                         "backend-ec", (json_int_t) ec,
+                                         "backend-http-status",
+                                         (json_int_t) http_status);
+    GNUNET_assert (NULL != bc->resp);
+    fprintf (stderr, "SET: %p - %p\n", bc, (NULL != bc) ? bc->resp : NULL);
+    bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Storing payment request for order %s\n",
+              order_id);
   qs = db->store_payment_TR (db->cls,
                              &bc->account,
                              order_id,
@@ -278,6 +306,7 @@ proposal_cb (void *cls,
     GNUNET_break (0);
     bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CREATE_DB_ERROR,
                                      "Failed to persist payment request in sync database");
+    GNUNET_assert (NULL != bc->resp);
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return;
   }
@@ -285,6 +314,7 @@ proposal_cb (void *cls,
               "Obtained fresh order `%s'\n",
               order_id);
   bc->resp = make_payment_request (order_id);
+  GNUNET_assert (NULL != bc->resp);
   bc->response_code = MHD_HTTP_PAYMENT_REQUIRED;
 }
 
@@ -353,6 +383,7 @@ check_payment_cb (void *cls,
               "Payment status checked: %s\n",
               paid ? "paid" : "unpaid");
   MHD_resume_connection (bc->con);
+  SH_trigger_daemon ();
   GNUNET_break ( (GNUNET_NO == refunded) &&
                  (NULL == refund_amount) );
   if (paid)
@@ -368,6 +399,7 @@ check_payment_cb (void *cls,
     GNUNET_break (0);
     bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
                                      "Failed to persist payment confirmation in sync database");
+    GNUNET_assert (NULL != bc->resp);
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return; /* continue as planned */
   }
@@ -377,6 +409,7 @@ check_payment_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Repeating payment request\n");
     bc->resp = make_payment_request (bc->existing_order_id);
+    GNUNET_assert (NULL != bc->resp);
     bc->response_code = MHD_HTTP_PAYMENT_REQUIRED;
     return;
   }
@@ -384,6 +417,7 @@ check_payment_cb (void *cls,
               "Timeout waiting for payment\n");
   bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_TIMEOUT,
                                    "Timeout awaiting promised payment");
+  GNUNET_assert (NULL != bc->resp);
   bc->response_code = MHD_HTTP_REQUEST_TIMEOUT;
 }
 
@@ -413,6 +447,7 @@ await_payment (struct BackupContext *bc,
                                           timeout,
                                           &check_payment_cb,
                                           bc);
+  SH_trigger_curl ();
 }
 
 
@@ -466,7 +501,8 @@ begin_payment (struct BackupContext *bc,
                                bc_tail,
                                bc);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Suspending connection while creating order...\n");
+              "Suspending connection while creating order at `%s'\n",
+              SH_backend_url);
   MHD_suspend_connection (bc->con);
   order = json_pack ("{s:o, s:s, s:s}",
                      "amount", TALER_JSON_from_amount (&SH_annual_fee),
@@ -477,6 +513,7 @@ begin_payment (struct BackupContext *bc,
                                      order,
                                      &proposal_cb,
                                      bc);
+  SH_trigger_curl ();
   json_decref (order);
   return MHD_YES;
 }
@@ -497,6 +534,13 @@ handle_database_error (struct BackupContext *bc,
 {
   switch (qs)
   {
+  case SYNC_DB_OLD_BACKUP_MISSING:
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Update failed: no existing backup\n");
+    return TALER_MHD_reply_with_error (bc->con,
+                                       MHD_HTTP_NOT_FOUND,
+                                       TALER_EC_SYNC_PREVIOUS_BACKUP_UNKNOWN,
+                                       "Cannot update, no existing backup known");
   case SYNC_DB_OLD_BACKUP_MISSMATCH:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Conflict detected, returning existing backup\n");
@@ -565,6 +609,7 @@ sync_handler_backup_post (struct MHD_Connection *connection,
   struct BackupContext *bc;
 
   bc = *con_cls;
+  fprintf (stderr, "%p - %p\n", bc, (NULL != bc) ? bc->resp : NULL);
   if (NULL == bc)
   {
     /* first call, setup internals */
@@ -764,9 +809,12 @@ sync_handler_backup_post (struct MHD_Connection *connection,
     return MHD_YES;
   }
   /* handle upload */
-  if (0 != upload_data_size)
+  if (0 != *upload_data_size)
   {
     /* check MHD invariant */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Processing %u bytes of upload data\n",
+                (unsigned int) *upload_data_size);
     GNUNET_assert (bc->upload_off + *upload_data_size <= bc->upload_size);
     memcpy (&bc->upload[bc->upload_off],
             upload_data,
@@ -783,10 +831,15 @@ sync_handler_backup_post (struct MHD_Connection *connection,
     int ret;
 
     /* We generated a response asynchronously, queue that */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Returning asynchronously generated response with HTTP status %u\n",
+                bc->response_code);
     ret = MHD_queue_response (connection,
                               bc->response_code,
                               bc->resp);
     GNUNET_break (MHD_YES == ret);
+    MHD_destroy_response (bc->resp);
+    bc->resp = NULL;
     return ret;
   }
 
@@ -812,14 +865,21 @@ sync_handler_backup_post (struct MHD_Connection *connection,
   {
     enum SYNC_DB_QueryStatus qs;
 
-    if (GNUNET_is_zero (&bc->old_backup_hash))
+    if (0 == GNUNET_is_zero (&bc->old_backup_hash))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Uploading first backup to account\n");
       qs = db->store_backup_TR (db->cls,
                                 account,
                                 &bc->account_sig,
                                 &bc->new_backup_hash,
                                 bc->upload_size,
                                 bc->upload);
+    }
     else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Uploading existing backup of account\n");
       qs = db->update_backup_TR (db->cls,
                                  account,
                                  &bc->old_backup_hash,
@@ -827,6 +887,7 @@ sync_handler_backup_post (struct MHD_Connection *connection,
                                  &bc->new_backup_hash,
                                  bc->upload_size,
                                  bc->upload);
+    }
     if (qs < 0)
       return handle_database_error (bc,
                                     qs);
