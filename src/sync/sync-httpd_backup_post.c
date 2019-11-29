@@ -824,6 +824,13 @@ sync_handler_backup_post (struct MHD_Connection *connection,
     *upload_data_size = 0;
     return MHD_YES;
   }
+  else if ( (0 == bc->upload_off) &&
+            (0 != bc->upload_size) &&
+            (NULL == bc->resp) )
+  {
+    /* wait for upload */
+    return MHD_YES;
+  }
   if (NULL != bc->resp)
   {
     int ret;

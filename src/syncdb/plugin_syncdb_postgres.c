@@ -1181,6 +1181,19 @@ libsync_plugin_db_postgres_init (void *cls)
     GNUNET_free (pg);
     return NULL;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "taler",
+                                             "CURRENCY",
+                                             &pg->currency))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "taler",
+                               "CURRENCY");
+    GNUNET_PQ_disconnect (pg->conn);
+    GNUNET_free (pg);
+    return NULL;
+  }
   plugin = GNUNET_new (struct SYNC_DatabasePlugin);
   plugin->cls = pg;
   plugin->drop_tables = &postgres_drop_tables;

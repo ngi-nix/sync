@@ -186,6 +186,9 @@ backup_upload_cb (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "Order ID from Sync service is `%s'\n",
                     bus->payment_order_id);
+        memset (&bus->curr_hash,
+                0,
+                sizeof (struct GNUNET_HashCode));
       }
       break;
     case SYNC_US_CONFLICTING_BACKUP:
@@ -338,7 +341,8 @@ backup_upload_run (void *cls,
   bus->uo = SYNC_upload (is->ctx,
                          bus->sync_url,
                          &bus->sync_priv,
-                         ( (NULL != bus->prev_upload) ||
+                         ( ( (NULL != bus->prev_upload) &&
+                             (0 != GNUNET_is_zero (&bus->prev_hash)) ) ||
                            (0 != (SYNC_TESTING_UO_PREV_HASH_WRONG
                                   & bus->uopt)) )
                          ? &bus->prev_hash

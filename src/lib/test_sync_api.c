@@ -185,8 +185,10 @@ run (void *cls,
       "create-reserve-1",
       "EUR:5",
       MHD_HTTP_OK),
+    /* Failed download: no backup exists */
     SYNC_TESTING_cmd_backup_nx ("backup-download-nx",
                                 sync_url),
+    /* Failed upload: need to pay */
     SYNC_TESTING_cmd_backup_upload ("backup-upload-1",
                                     sync_url,
                                     NULL /* prev upload */,
@@ -194,11 +196,13 @@ run (void *cls,
                                     MHD_HTTP_PAYMENT_REQUIRED,
                                     "Test-1",
                                     strlen ("Test-1")),
+    /* what would we have to pay? */
     TALER_TESTING_cmd_proposal_lookup ("fetch-proposal",
                                        merchant_url,
                                        MHD_HTTP_OK,
                                        "backup-upload-1",
                                        NULL),
+    /* make the payment */
     TALER_TESTING_cmd_pay ("pay-account",
                            merchant_url,
                            MHD_HTTP_OK,
@@ -207,6 +211,15 @@ run (void *cls,
                            "EUR:5",
                            "EUR:4.99", /* must match ANNUAL_FEE in config! */
                            "EUR:0.01"),
+    /* now upload should succeed */
+    SYNC_TESTING_cmd_backup_upload ("backup-upload-2",
+                                    sync_url,
+                                    "backup-upload-1",
+                                    SYNC_TESTING_UO_NONE,
+                                    MHD_HTTP_NO_CONTENT,
+                                    "Test-1",
+                                    strlen ("Test-1")),
+
     TALER_TESTING_cmd_end ()
   };
 
