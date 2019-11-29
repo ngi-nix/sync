@@ -265,12 +265,12 @@ proposal_cb (void *cls,
   enum SYNC_DB_QueryStatus qs;
 
   bc->po = NULL;
-  GNUNET_CONTAINER_DLL_remove (bc_head,
-                               bc_tail,
-                               bc);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Resuming connection with order `%s'\n",
               order_id);
+  GNUNET_CONTAINER_DLL_remove (bc_head,
+                               bc_tail,
+                               bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
   if (MHD_HTTP_OK != http_status)
@@ -381,6 +381,9 @@ check_payment_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Payment status checked: %s\n",
               paid ? "paid" : "unpaid");
+  GNUNET_CONTAINER_DLL_remove (bc_head,
+                               bc_tail,
+                               bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
   GNUNET_break ( (GNUNET_NO == refunded) &&

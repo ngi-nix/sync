@@ -67,9 +67,16 @@ struct BackupUploadState
   const char *sync_url;
 
   /**
-   * Previous upload, or NULL for none.
+   * Previous upload, or NULL for none. Used to calculate what THIS
+   * upload is based on.
    */
   const char *prev_upload;
+
+  /**
+   * Last upload, or NULL for none, usually same as @e prev_upload.
+   * Used to check the response on #MHD_HTTP_CONFLICT.
+   */
+  const char *last_upload;
 
   /**
    * Payment order ID we got back, if any. Otherwise NULL.
@@ -198,7 +205,7 @@ backup_upload_cb (void *cls,
 
         ref = TALER_TESTING_interpreter_lookup_command
                 (bus->is,
-                bus->prev_upload);
+                bus->last_upload);
         GNUNET_assert (NULL != ref);
         GNUNET_assert (GNUNET_OK ==
                        SYNC_TESTING_get_trait_hash (ref,
@@ -433,17 +440,19 @@ backup_upload_traits (void *cls,
  *        the policy store request.
  * @param prev_upload reference to a previous upload we are
  *        supposed to update, NULL for none
+ * @param last_upload reference to the last upload for the
+ *          same account, used to check result on MHD_HTTP_CONFLICT
+ * @param uo upload options
  * @param http_status expected HTTP status.
- * @param pub account identifier
- * @param payment_id payment identifier
- * @param policy_data recovery data to post
- *
+ * @param backup_data data to upload
+ * @param backup_data_size number of bytes in @a backup_data
  * @return the command
  */
 struct TALER_TESTING_Command
 SYNC_TESTING_cmd_backup_upload (const char *label,
                                 const char *sync_url,
                                 const char *prev_upload,
+                                const char *last_upload,
                                 enum SYNC_TESTING_UploadOption uo,
                                 unsigned int http_status,
                                 const void *backup_data,
@@ -454,6 +463,7 @@ SYNC_TESTING_cmd_backup_upload (const char *label,
   bus = GNUNET_new (struct BackupUploadState);
   bus->http_status = http_status;
   bus->prev_upload = prev_upload;
+  bus->last_upload = last_upload;
   bus->uopt = uo;
   bus->sync_url = sync_url;
   bus->backup = backup_data;

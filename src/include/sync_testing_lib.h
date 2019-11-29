@@ -216,17 +216,19 @@ enum SYNC_TESTING_UploadOption
  *        the policy store request.
  * @param prev_upload reference to a previous upload we are
  *        supposed to update, NULL for none
+ * @param last_upload reference to the last upload for the
+ *          same account, used to check result on MHD_HTTP_CONFLICT
+ * @param uo upload options
  * @param http_status expected HTTP status.
- * @param pub account identifier
- * @param payment_id payment identifier
- * @param policy_data recovery data to post
- *
+ * @param backup_data data to upload
+ * @param backup_data_size number of bytes in @a backup_data
  * @return the command
  */
 struct TALER_TESTING_Command
 SYNC_TESTING_cmd_backup_upload (const char *label,
                                 const char *sync_url,
                                 const char *prev_upload,
+                                const char *last_upload,
                                 enum SYNC_TESTING_UploadOption uo,
                                 unsigned int http_status,
                                 const void *backup_data,
