@@ -240,7 +240,15 @@ run (void *cls,
       "create-reserve-1",
       "EUR:5",
       MHD_HTTP_OK),
-
+    SYNC_TESTING_cmd_backup_nx ("backup-download-nx",
+                                sync_url),
+    SYNC_TESTING_cmd_backup_upload ("backup-upload-1",
+                                    sync_url,
+                                    NULL /* prev upload */,
+                                    SYNC_TESTING_UO_NONE,
+                                    MHD_HTTP_PAYMENT_REQUIRED,
+                                    "Test-1",
+                                    strlen ("Test-1")),
     TALER_TESTING_cmd_end ()
   };
 

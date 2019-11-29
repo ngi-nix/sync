@@ -303,7 +303,11 @@ backup_upload_run (void *cls,
   bus->uo = SYNC_upload (is->ctx,
                          bus->sync_url,
                          &bus->sync_priv,
-                         &bus->prev_hash,
+                         ( (NULL != bus->prev_upload) ||
+                           (0 != (SYNC_TESTING_UO_PREV_HASH_WRONG
+                                  & bus->uopt)) )
+                         ? &bus->prev_hash
+                         : NULL,
                          bus->backup_size,
                          bus->backup,
                          (0 != (SYNC_TESTING_UO_REQUEST_PAYMENT & bus->uopt)),
