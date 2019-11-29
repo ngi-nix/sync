@@ -219,8 +219,18 @@ handle_header (char *buffer,
   if (0 == strcasecmp (hdr_type,
                        "Taler"))
   {
+    size_t len;
+
     /* found payment URI we care about! */
     uo->pay_uri = GNUNET_strdup (hdr_val);
+    len = strlen (uo->pay_uri);
+    while ( (len > 0) &&
+            ( ('\n' == uo->pay_uri[len - 1]) ||
+              ('\r' == uo->pay_uri[len - 1]) ) )
+    {
+      len--;
+      uo->pay_uri[len] = '\0';
+    }
   }
   GNUNET_free (ndup);
   return total;

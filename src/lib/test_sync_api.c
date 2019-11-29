@@ -249,6 +249,19 @@ run (void *cls,
                                     MHD_HTTP_PAYMENT_REQUIRED,
                                     "Test-1",
                                     strlen ("Test-1")),
+    TALER_TESTING_cmd_proposal_lookup ("fetch-proposal",
+                                       merchant_url,
+                                       MHD_HTTP_OK,
+                                       "backup-upload-1",
+                                       NULL),
+    TALER_TESTING_cmd_pay ("pay-account",
+                           merchant_url,
+                           MHD_HTTP_OK,
+                           "fetch-proposal",
+                           "withdraw-coin-1",
+                           "EUR:5",
+                           "EUR:4.99", /* must match ANNUAL_FEE in config! */
+                           "EUR:0.01"),
     TALER_TESTING_cmd_end ()
   };
 

@@ -290,12 +290,11 @@ proposal_cb (void *cls,
                                          "backend-http-status",
                                          (json_int_t) http_status);
     GNUNET_assert (NULL != bc->resp);
-    fprintf (stderr, "SET: %p - %p\n", bc, (NULL != bc) ? bc->resp : NULL);
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Storing payment request for order %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Storing payment request for order `%s'\n",
               order_id);
   qs = db->store_payment_TR (db->cls,
                              &bc->account,
@@ -609,7 +608,6 @@ sync_handler_backup_post (struct MHD_Connection *connection,
   struct BackupContext *bc;
 
   bc = *con_cls;
-  fprintf (stderr, "%p - %p\n", bc, (NULL != bc) ? bc->resp : NULL);
   if (NULL == bc)
   {
     /* first call, setup internals */

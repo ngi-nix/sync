@@ -151,7 +151,42 @@ backup_upload_cb (void *cls,
       }
       break;
     case SYNC_US_PAYMENT_REQUIRED:
-      bus->payment_order_id = GNUNET_strdup (ud->details.payment_request);
+      {
+        const char *m;
+
+        if (0 != strncmp (ud->details.payment_request,
+                          "taler://pay/http",
+                          strlen ("taler://pay/http")))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Did not find `%s' in `%s'\n",
+                      "/-/-/",
+                      ud->details.payment_request);
+          TALER_TESTING_interpreter_fail (bus->is);
+          return;
+        }
+        m = strstr (ud->details.payment_request, "/-/-/");
+        if (NULL == m)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Did not find `%s' in `%s'\n",
+                      "/-/-/",
+                      ud->details.payment_request);
+          TALER_TESTING_interpreter_fail (bus->is);
+          /* NOTE: The above is a simplifying assumption for the
+             test-logic, hitting this code merely means that
+             the assumptions for the test (i.e. no instance) are
+             not satisfied, it is not inherently the case that
+             the above token must appear in the payment request!
+
+             So if you hit this, you might just want to modify
+             the code here to handle this better! */return;
+        }
+        bus->payment_order_id = GNUNET_strdup (&m[strlen ("/-/-/")]);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Order ID from Sync service is `%s'\n",
+                    bus->payment_order_id);
+      }
       break;
     case SYNC_US_CONFLICTING_BACKUP:
       {
