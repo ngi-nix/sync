@@ -254,7 +254,7 @@ run (void *cls,
                                     "Test-4",
                                     strlen ("Test-4")),
     /* Test download: previous did NOT change the data on the server! */
-    SYNC_TESTING_cmd_backup_download ("download-3",
+    SYNC_TESTING_cmd_backup_download ("download-3b",
                                       sync_url,
                                       MHD_HTTP_OK,
                                       "backup-upload-3"),
