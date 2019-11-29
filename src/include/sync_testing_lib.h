@@ -177,4 +177,59 @@ SYNC_TESTING_cmd_backup_download (const char *label,
                                   unsigned int http_status,
                                   const char *upload_ref);
 
+
+/**
+ * Types of options for performing the upload. Used as a bitmask.
+ */
+enum SYNC_TESTING_UploadOption
+{
+  /**
+   * Do everything by the book.
+   */
+  SYNC_TESTING_UO_NONE = 0,
+
+  /**
+   * Use random hash for previous upload instead of correct
+   * previous hash.
+   */
+  SYNC_TESTING_UO_PREV_HASH_WRONG = 1,
+
+  /**
+   * Request payment.
+   */
+  SYNC_TESTING_UO_REQUEST_PAYMENT = 2,
+
+  /**
+   * Reference payment order ID from linked previous upload.
+   */
+  SYNC_TESTING_UO_REFERENCE_ORDER_ID = 4
+
+
+};
+
+
+/**
+ * Make the "backup upload" command.
+ *
+ * @param label command label
+ * @param sync_url base URL of the sync serving
+ *        the policy store request.
+ * @param prev_upload reference to a previous upload we are
+ *        supposed to update, NULL for none
+ * @param http_status expected HTTP status.
+ * @param pub account identifier
+ * @param payment_id payment identifier
+ * @param policy_data recovery data to post
+ *
+ * @return the command
+ */
+struct TALER_TESTING_Command
+SYNC_TESTING_cmd_backup_upload (const char *label,
+                                const char *sync_url,
+                                const char *prev_upload,
+                                enum SYNC_TESTING_UploadOption uo,
+                                unsigned int http_status,
+                                const void *backup_data,
+                                size_t backup_data_size);
+
 #endif
