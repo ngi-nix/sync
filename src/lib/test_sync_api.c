@@ -47,8 +47,6 @@
  */
 #define EXCHANGE_URL "http://localhost:8081/"
 
-static const char *pickup_amounts_1[] = {"EUR:5", NULL};
-
 /**
  * URL of the fakebank.
  */
