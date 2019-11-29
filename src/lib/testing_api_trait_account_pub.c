@@ -57,7 +57,7 @@ SYNC_TESTING_get_trait_account_pub
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_account_pub
+SYNC_TESTING_make_trait_account_pub
   (unsigned int index,
   const struct SYNC_AccountPublicKeyP *h)
 {

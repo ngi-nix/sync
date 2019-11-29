@@ -63,8 +63,8 @@ SYNC_TESTING_get_trait_hash (const struct TALER_TESTING_Command *cmd,
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_hash (unsigned int index,
-                               const struct GNUNET_HashCode *h);
+SYNC_TESTING_make_trait_hash (unsigned int index,
+                              const struct GNUNET_HashCode *h);
 
 
 /**
@@ -89,8 +89,8 @@ SYNC_TESTING_get_trait_account_pub (const struct TALER_TESTING_Command *cmd,
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_account_pub (unsigned int index,
-                                      const struct SYNC_AccountPublicKeyP *h);
+SYNC_TESTING_make_trait_account_pub (unsigned int index,
+                                     const struct SYNC_AccountPublicKeyP *h);
 
 
 /**
@@ -116,9 +116,9 @@ SYNC_TESTING_get_trait_account_priv (const struct TALER_TESTING_Command *cmd,
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_account_priv (unsigned int index,
-                                       const struct
-                                       SYNC_AccountPrivateKeyP *priv);
+SYNC_TESTING_make_trait_account_priv (unsigned int index,
+                                      const struct
+                                      SYNC_AccountPrivateKeyP *priv);
 
 
 /**
@@ -132,8 +132,8 @@ TALER_TESTING_make_trait_account_priv (unsigned int index,
  *         be started.
  */
 struct GNUNET_OS_Process *
-TALER_TESTING_run_sync (const char *config_filename,
-                        const char *sync_url);
+SYNC_TESTING_run_sync (const char *config_filename,
+                       const char *sync_url);
 
 
 /**
@@ -145,7 +145,7 @@ TALER_TESTING_run_sync (const char *config_filename,
  *         by the caller.
  */
 char *
-TALER_TESTING_prepare_sync (const char *config_filename);
+SYNC_TESTING_prepare_sync (const char *config_filename);
 
 
 /**

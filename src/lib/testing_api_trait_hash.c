@@ -57,7 +57,7 @@ SYNC_TESTING_get_trait_hash
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_hash
+SYNC_TESTING_make_trait_hash
   (unsigned int index,
   const struct GNUNET_HashCode *h)
 {

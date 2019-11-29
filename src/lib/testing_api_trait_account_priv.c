@@ -57,7 +57,7 @@ SYNC_TESTING_get_trait_account_priv
  * @return #GNUNET_OK on success.
  */
 struct TALER_TESTING_Trait
-TALER_TESTING_make_trait_account_priv
+SYNC_TESTING_make_trait_account_priv
   (unsigned int index,
   const struct SYNC_AccountPrivateKeyP *priv)
 {

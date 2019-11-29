@@ -249,6 +249,7 @@ run (void *cls,
                                    fakebank_url);
 }
 
+
 int
 main (int argc,
       char *const *argv)
@@ -271,7 +272,7 @@ main (int argc,
     return 77;
 
   if (NULL ==
-      (sync_url = TALER_TESTING_prepare_sync (CONFIG_FILE)))
+      (sync_url = SYNC_TESTING_prepare_sync (CONFIG_FILE)))
     return 77;
 
   TALER_TESTING_cleanup_files (CONFIG_FILE);
@@ -293,7 +294,7 @@ main (int argc,
       return 1;
 
     if (NULL == (syncd =
-                   TALER_TESTING_run_sync (CONFIG_FILE, sync_url)))
+                   SYNC_TESTING_run_sync (CONFIG_FILE, sync_url)))
       return 1;
 
     ret = TALER_TESTING_setup_with_exchange (&run,
@@ -318,5 +319,6 @@ main (int argc,
   }
   return 0;
 }
+
 
 /* end of test_sync_api.c */

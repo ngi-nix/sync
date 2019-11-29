@@ -39,8 +39,8 @@
  *         be started.
  */
 struct GNUNET_OS_Process *
-TALER_TESTING_run_sync (const char *config_filename,
-                        const char *sync_url)
+SYNC_TESTING_run_sync (const char *config_filename,
+                       const char *sync_url)
 {
   struct GNUNET_OS_Process *sync_proc;
   unsigned int iter;
@@ -104,7 +104,7 @@ TALER_TESTING_run_sync (const char *config_filename,
  *         by the caller.
  */
 char *
-TALER_TESTING_prepare_sync (const char *config_filename)
+SYNC_TESTING_prepare_sync (const char *config_filename)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   unsigned long long port;

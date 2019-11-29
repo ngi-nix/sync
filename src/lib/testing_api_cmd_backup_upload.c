@@ -26,6 +26,7 @@
 #include "sync_testing_lib.h"
 #include <taler/taler_util.h>
 #include <taler/taler_testing_lib.h>
+#include "sync_testing_lib.h"
 
 /**
  * State for a "backup upload" CMD.
@@ -136,9 +137,56 @@ backup_upload_cb (void *cls,
     TALER_TESTING_interpreter_fail (bus->is);
     return;
   }
+  if (NULL != ud)
+  {
+    switch (ud->us)
+    {
+    case SYNC_US_SUCCESS:
+      if (0 != GNUNET_memcmp (&bus->curr_hash,
+                              ud->details.curr_backup_hash))
+      {
+        GNUNET_break (0);
+        TALER_TESTING_interpreter_fail (bus->is);
+        return;
+      }
+      break;
+    case SYNC_US_PAYMENT_REQUIRED:
+      bus->payment_order_id = GNUNET_strdup (ud->details.payment_request);
+      break;
+    case SYNC_US_CONFLICTING_BACKUP:
+      {
+        const struct TALER_TESTING_Command *ref;
+        const struct GNUNET_HashCode *h;
 
-  // FIXME: check ud, store result!
-
+        ref = TALER_TESTING_interpreter_lookup_command
+                (bus->is,
+                bus->prev_upload);
+        GNUNET_assert (NULL != ref);
+        GNUNET_assert (GNUNET_OK ==
+                       SYNC_TESTING_get_trait_hash (ref,
+                                                    SYNC_TESTING_TRAIT_HASH_CURRENT,
+                                                    &h));
+        if (0 != GNUNET_memcmp (h,
+                                &ud->details.recovered_backup.
+                                existing_backup_hash))
+        {
+          GNUNET_break (0);
+          TALER_TESTING_interpreter_fail (bus->is);
+          return;
+        }
+      }
+    case SYNC_US_HTTP_ERROR:
+      break;
+    case SYNC_US_CLIENT_ERROR:
+      GNUNET_break (0);
+      TALER_TESTING_interpreter_fail (bus->is);
+      return;
+    case SYNC_US_SERVER_ERROR:
+      GNUNET_break (0);
+      TALER_TESTING_interpreter_fail (bus->is);
+      return;
+    }
+  }
   TALER_TESTING_interpreter_next (bus->is);
 }
 
@@ -161,7 +209,6 @@ backup_upload_run (void *cls,
   if (NULL != bus->prev_upload)
   {
     const struct TALER_TESTING_Command *ref;
-    const struct BackupUploadState *prev;
 
     ref = TALER_TESTING_interpreter_lookup_command
             (is,
@@ -172,19 +219,62 @@ backup_upload_run (void *cls,
       TALER_TESTING_interpreter_fail (bus->is);
       return;
     }
-    if (ref->run != &backup_upload_run)
     {
-      GNUNET_break (0);
-      TALER_TESTING_interpreter_fail (bus->is);
-      return;
+      const struct GNUNET_HashCode *h;
+
+      if (GNUNET_OK !=
+          SYNC_TESTING_get_trait_hash (ref,
+                                       SYNC_TESTING_TRAIT_HASH_CURRENT,
+                                       &h))
+      {
+        GNUNET_break (0);
+        TALER_TESTING_interpreter_fail (bus->is);
+        return;
+      }
+      bus->prev_hash = *h;
     }
-    prev = ref->cls;
-    bus->sync_priv = prev->sync_priv;
-    bus->sync_pub = prev->sync_pub;
-    bus->prev_hash = prev->curr_hash;
+    {
+      const struct SYNC_AccountPrivateKeyP *priv;
+
+      if (GNUNET_OK !=
+          SYNC_TESTING_get_trait_account_priv (ref,
+                                               0,
+                                               &priv))
+      {
+        GNUNET_break (0);
+        TALER_TESTING_interpreter_fail (bus->is);
+        return;
+      }
+      bus->sync_priv = *priv;
+    }
+    {
+      const struct SYNC_AccountPublicKeyP *pub;
+
+      if (GNUNET_OK !=
+          SYNC_TESTING_get_trait_account_pub (ref,
+                                              0,
+                                              &pub))
+      {
+        GNUNET_break (0);
+        TALER_TESTING_interpreter_fail (bus->is);
+        return;
+      }
+      bus->sync_pub = *pub;
+    }
     if (0 != (SYNC_TESTING_UO_REFERENCE_ORDER_ID & bus->uopt))
     {
-      bus->payment_order_req = prev->payment_order_id;
+      const char *order_id;
+
+      if (GNUNET_OK !=
+          TALER_TESTING_get_trait_order_id (ref,
+                                            0,
+                                            &order_id))
+      {
+        GNUNET_break (0);
+        TALER_TESTING_interpreter_fail (bus->is);
+        return;
+      }
+      bus->payment_order_req = order_id;
       if (NULL == bus->payment_order_req)
       {
         GNUNET_break (0);
@@ -256,6 +346,43 @@ backup_upload_cleanup (void *cls,
 
 
 /**
+ * Offer internal data to other commands.
+ *
+ * @param cls closure
+ * @param ret[out] result (could be anything)
+ * @param trait name of the trait
+ * @param index index number of the object to extract.
+ * @return #GNUNET_OK on success
+ */
+static int
+backup_upload_traits (void *cls,
+                      const void **ret,
+                      const char *trait,
+                      unsigned int index)
+{
+  struct BackupUploadState *bus = cls;
+  struct TALER_TESTING_Trait traits[] = {
+    SYNC_TESTING_make_trait_hash (SYNC_TESTING_TRAIT_HASH_CURRENT,
+                                  &bus->curr_hash),
+    SYNC_TESTING_make_trait_hash (SYNC_TESTING_TRAIT_HASH_PREVIOUS,
+                                  &bus->prev_hash),
+    SYNC_TESTING_make_trait_account_pub (0,
+                                         &bus->sync_pub),
+    SYNC_TESTING_make_trait_account_priv (0,
+                                          &bus->sync_priv),
+    TALER_TESTING_make_trait_order_id (0,
+                                       bus->payment_order_id),
+    TALER_TESTING_trait_end ()
+  };
+
+  return TALER_TESTING_get_trait (traits,
+                                  ret,
+                                  trait,
+                                  index);
+}
+
+
+/**
  * Make the "backup upload" command.
  *
  * @param label command label
@@ -288,14 +415,13 @@ SYNC_TESTING_cmd_backup_upload (const char *label,
   bus->sync_url = sync_url;
   bus->backup = backup_data;
   bus->backup_size = backup_data_size;
-  // FIXME: traits!
-
   {
     struct TALER_TESTING_Command cmd = {
       .cls = bus,
       .label = label,
       .run = &backup_upload_run,
-      .cleanup = &backup_upload_cleanup
+      .cleanup = &backup_upload_cleanup,
+      .traits = &backup_upload_traits
     };
 
     return cmd;
