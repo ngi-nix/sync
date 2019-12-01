@@ -47,10 +47,25 @@ static int result;
  */
 static struct SYNC_DatabasePlugin *plugin;
 
+
 /**
- * User public key, set to a random value
+ * Function called on all pending payments for an account.
+ *
+ * @param cls closure
+ * @param timestamp for how long have we been waiting
+ * @param order_id order id in the backend
+ * @param amount how much is the order for
  */
-static struct SYNC_AccountPublicKeyP accountPubP;
+static void
+payment_it (void *cls,
+            struct GNUNET_TIME_Absolute timestamp,
+            const char *order_id,
+            const struct TALER_Amount *amount)
+{
+  GNUNET_assert (NULL == cls);
+  GNUNET_assert (0 == strcmp (order_id,
+                              "fake-order-2"));
+}
 
 
 /**
@@ -62,6 +77,18 @@ static void
 run (void *cls)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct TALER_Amount amount;
+  struct SYNC_AccountPublicKeyP account_pub;
+  struct SYNC_AccountSignatureP account_sig;
+  struct SYNC_AccountSignatureP account_sig2;
+  struct GNUNET_HashCode h;
+  struct GNUNET_HashCode h2;
+  struct GNUNET_HashCode h3;
+  struct GNUNET_HashCode r;
+  struct GNUNET_HashCode r2;
+  struct GNUNET_TIME_Absolute ts;
+  size_t bs;
+  void *b = NULL;
 
   if (NULL == (plugin = SYNC_DB_plugin_load (cfg)))
   {
@@ -81,10 +108,143 @@ run (void *cls)
     result = 77;
     return;
   }
+  memset (&account_pub, 1, sizeof (account_pub));
+  memset (&account_sig, 2, sizeof (account_sig));
+  GNUNET_CRYPTO_hash ("data", 4, &h);
+  GNUNET_CRYPTO_hash ("DATA", 4, &h2);
+  GNUNET_CRYPTO_hash ("ATAD", 4, &h3);
+  GNUNET_assert (GNUNET_OK ==
+                 TALER_string_to_amount ("EUR:1",
+                                         &amount));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->store_payment_TR (plugin->cls,
+                                    &account_pub,
+                                    "fake-order",
+                                    &amount));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->increment_lifetime_TR (plugin->cls,
+                                         &account_pub,
+                                         "fake-order",
+                                         GNUNET_TIME_UNIT_MINUTES));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->store_backup_TR (plugin->cls,
+                                   &account_pub,
+                                   &account_sig,
+                                   &h,
+                                   4,
+                                   "data"));
+  FAILIF (SYNC_DB_NO_RESULTS !=
+          plugin->store_backup_TR (plugin->cls,
+                                   &account_pub,
+                                   &account_sig,
+                                   &h,
+                                   4,
+                                   "data"));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->update_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &h,
+                                    &account_sig,
+                                    &h2,
+                                    4,
+                                    "DATA"));
+  FAILIF (SYNC_DB_OLD_BACKUP_MISSMATCH !=
+          plugin->update_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &h,
+                                    &account_sig,
+                                    &h3,
+                                    4,
+                                    "ATAD"));
+  FAILIF (SYNC_DB_NO_RESULTS !=
+          plugin->update_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &h,
+                                    &account_sig,
+                                    &h2,
+                                    4,
+                                    "DATA"));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->lookup_account_TR (plugin->cls,
+                                     &account_pub,
+                                     &r));
+  FAILIF (0 != GNUNET_memcmp (&r,
+                              &h2));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->lookup_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &account_sig2,
+                                    &r,
+                                    &r2,
+                                    &bs,
+                                    &b));
+  FAILIF (0 != GNUNET_memcmp (&r,
+                              &h));
+  FAILIF (0 != GNUNET_memcmp (&r2,
+                              &h2));
+  FAILIF (0 != GNUNET_memcmp (&account_sig2,
+                              &account_sig));
+  FAILIF (bs != 4);
+  FAILIF (0 != memcmp (b,
+                       "DATA",
+                       4));
+  GNUNET_free (b);
+  b = NULL;
+  FAILIF (0 !=
+          plugin->lookup_pending_payments_by_account_TR (plugin->cls,
+                                                         &account_pub,
+                                                         &payment_it,
+                                                         NULL));
+  memset (&account_pub, 2, sizeof (account_pub));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->store_payment_TR (plugin->cls,
+                                    &account_pub,
+                                    "fake-order-2",
+                                    &amount));
+  FAILIF (1 !=
+          plugin->lookup_pending_payments_by_account_TR (plugin->cls,
+                                                         &account_pub,
+                                                         &payment_it,
+                                                         NULL));
+  FAILIF (SYNC_DB_PAYMENT_REQUIRED !=
+          plugin->store_backup_TR (plugin->cls,
+                                   &account_pub,
+                                   &account_sig,
+                                   &h,
+                                   4,
+                                   "data"));
+  FAILIF (SYNC_DB_ONE_RESULT !=
+          plugin->increment_lifetime_TR (plugin->cls,
+                                         &account_pub,
+                                         "fake-order-2",
+                                         GNUNET_TIME_UNIT_MINUTES));
+  FAILIF (SYNC_DB_OLD_BACKUP_MISSING !=
+          plugin->update_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &h,
+                                    &account_sig,
+                                    &h2,
+                                    4,
+                                    "DATA"));
+  ts = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS);
+  (void) GNUNET_TIME_round_abs (&ts);
+  FAILIF (0 >
+          plugin->gc (plugin->cls,
+                      ts,
+                      ts));
+  memset (&account_pub, 1, sizeof (account_pub));
+  FAILIF (SYNC_DB_NO_RESULTS !=
+          plugin->lookup_backup_TR (plugin->cls,
+                                    &account_pub,
+                                    &account_sig2,
+                                    &r,
+                                    &r2,
+                                    &bs,
+                                    &b));
 
-  // FIXME: test logic here!
   result = 0;
-
+drop:
+  GNUNET_free_non_null (b);
   GNUNET_break (GNUNET_OK ==
                 plugin->drop_tables (plugin->cls));
   SYNC_DB_plugin_unload (plugin);

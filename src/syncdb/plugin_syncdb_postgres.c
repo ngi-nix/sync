@@ -615,13 +615,13 @@ postgres_update_backup (void *cls,
     GNUNET_break (0);
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
-    GNUNET_break (0);
-    return SYNC_DB_OLD_BACKUP_MISSING;
+    /* handle interesting case below */
+    break;
   case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
   case GNUNET_DB_STATUS_HARD_ERROR:
-    /* handle interesting case below */
-    break;
+    GNUNET_break (0);
+    return SYNC_DB_HARD_ERROR;
   default:
     GNUNET_break (0);
     return SYNC_DB_HARD_ERROR;
@@ -687,9 +687,7 @@ postgres_update_backup (void *cls,
     GNUNET_break (0);
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
-    /* Well, trying to update where there is no original
-       is a hard erorr, even though an odd one */
-    return SYNC_DB_HARD_ERROR;
+    return SYNC_DB_OLD_BACKUP_MISSING;
   case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     /* handle interesting case below */
     break;
@@ -701,8 +699,10 @@ postgres_update_backup (void *cls,
   /* had an existing backup, is it identical? */
   if (0 == GNUNET_memcmp (&bh,
                           backup_hash))
+  {
     /* backup identical to what was provided, no change */
-    return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
+    return SYNC_DB_NO_RESULTS;
+  }
   if (0 == GNUNET_memcmp (&bh,
                           old_backup_hash))
     /* all constraints seem satisified, original error must
@@ -1031,7 +1031,7 @@ libsync_plugin_db_postgres_init (void *cls)
                             ",paid BOOLEAN NOT NULL DEFAULT FALSE"
                             ");"),
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS backups"
-                            "(account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub)"
+                            "(account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub) ON DELETE CASCADE"
                             ",account_sig BYTEA NOT NULL CHECK (length(account_sig)=64)"
                             ",prev_hash BYTEA NOT NULL CHECK (length(prev_hash)=64)"
                             ",backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64)"
