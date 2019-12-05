@@ -326,11 +326,12 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
     }
     job_headers = ext;
 
-    /* set Etag header */
+    /* set If-None-Match header */
     val = GNUNET_STRINGS_data_to_string_alloc (&usp.new_backup_hash,
                                                sizeof (struct GNUNET_HashCode));
     GNUNET_asprintf (&hdr,
-                     "Etag: %s",
+                     "%s: %s",
+                     MHD_HTTP_HEADER_IF_NONE_MATCH,
                      val);
     GNUNET_free (val);
     ext = curl_slist_append (job_headers,

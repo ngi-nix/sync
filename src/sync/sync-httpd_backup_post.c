@@ -707,7 +707,7 @@ SH_backup_post (struct MHD_Connection *connection,
 
       etag = MHD_lookup_connection_value (connection,
                                           MHD_HEADER_KIND,
-                                          MHD_HTTP_HEADER_ETAG);
+                                          MHD_HTTP_HEADER_IF_NONE_MATCH);
       if ( (NULL == etag) ||
            (GNUNET_OK !=
             GNUNET_STRINGS_string_to_data (etag,
@@ -718,8 +718,8 @@ SH_backup_post (struct MHD_Connection *connection,
         GNUNET_break_op (0);
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_BAD_REQUEST,
-                                           TALER_EC_SYNC_BAD_ETAG,
-                                           "Etag does not include not a base32-encoded SHA-512 hash");
+                                           TALER_EC_SYNC_BAD_IF_NONE_MATCH,
+                                           "If-none-match does not include not a base32-encoded SHA-512 hash");
       }
     }
     /* validate signature */
