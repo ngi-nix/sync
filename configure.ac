@@ -4,7 +4,7 @@
 # This configure file is in the public domain
 
 AC_PREREQ([2.69])
-AC_INIT([sync], [0.5.0], [taler-bug@gnu.org])
+AC_INIT([sync], [0.6.0], [taler-bug@gnu.org])
 AC_CONFIG_SRCDIR([src/sync/sync-httpd.c])
 AC_CONFIG_HEADERS([sync_config.h])
 # support for non-recursive builds
