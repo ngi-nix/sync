@@ -8,5 +8,5 @@ talerinclude_HEADERS = \
   sync_database_lib.h \
   sync_database_plugin.h \
   sync_service.h \
-  sync_util.h 
-
+  sync_testing_lib.h \
+  sync_util.h

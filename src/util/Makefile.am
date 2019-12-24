@@ -12,6 +12,9 @@ pkgcfgdir = $(prefix)/share/sync/config.d/
 bin_SCRIPTS = \
   sync-config
 
+EXTRA_DIST = \
+  $(bin_SCRIPTS)
+
 lib_LTLIBRARIES = \
   libsyncutil.la
 
