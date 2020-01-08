@@ -221,10 +221,7 @@ make_payment_request (const char *order_id)
   resp = MHD_create_response_from_buffer (0,
                                           NULL,
                                           MHD_RESPMEM_PERSISTENT);
-  GNUNET_break (MHD_YES ==
-                MHD_add_response_header (resp,
-                                         MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                         "*"));
+  TALER_MHD_add_global_headers (resp);
   {
     char *hdr;
 
@@ -769,10 +766,7 @@ SH_backup_post (struct MHD_Connection *connection,
         resp = MHD_create_response_from_buffer (0,
                                                 NULL,
                                                 MHD_RESPMEM_PERSISTENT);
-        GNUNET_break (MHD_YES ==
-                      MHD_add_response_header (resp,
-                                               MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                               "*"));
+        TALER_MHD_add_global_headers (resp);
         ret = MHD_queue_response (connection,
                                   MHD_HTTP_NOT_MODIFIED,
                                   resp);
@@ -910,10 +904,7 @@ SH_backup_post (struct MHD_Connection *connection,
       resp = MHD_create_response_from_buffer (0,
                                               NULL,
                                               MHD_RESPMEM_PERSISTENT);
-      GNUNET_break (MHD_YES ==
-                    MHD_add_response_header (resp,
-                                             MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                             "*"));
+      TALER_MHD_add_global_headers (resp);
       ret = MHD_queue_response (connection,
                                 MHD_HTTP_NOT_MODIFIED,
                                 resp);
@@ -931,10 +922,7 @@ SH_backup_post (struct MHD_Connection *connection,
     resp = MHD_create_response_from_buffer (0,
                                             NULL,
                                             MHD_RESPMEM_PERSISTENT);
-    GNUNET_break (MHD_YES ==
-                  MHD_add_response_header (resp,
-                                           MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                           "*"));
+    TALER_MHD_add_global_headers (resp);
     ret = MHD_queue_response (connection,
                               MHD_HTTP_NO_CONTENT,
                               resp);

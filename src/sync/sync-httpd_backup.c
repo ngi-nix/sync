@@ -81,10 +81,7 @@ SH_backup_get (struct MHD_Connection *connection,
       resp = MHD_create_response_from_buffer (0,
                                               NULL,
                                               MHD_RESPMEM_PERSISTENT);
-      GNUNET_break (MHD_YES ==
-                    MHD_add_response_header (resp,
-                                             MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                             "*"));
+      TALER_MHD_add_global_headers (resp);
       ret = MHD_queue_response (connection,
                                 MHD_HTTP_NO_CONTENT,
                                 resp);
@@ -122,10 +119,7 @@ SH_backup_get (struct MHD_Connection *connection,
           resp = MHD_create_response_from_buffer (0,
                                                   NULL,
                                                   MHD_RESPMEM_PERSISTENT);
-          GNUNET_break (MHD_YES ==
-                        MHD_add_response_header (resp,
-                                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                                 "*"));
+          TALER_MHD_add_global_headers (resp);
           ret = MHD_queue_response (connection,
                                     MHD_HTTP_NOT_MODIFIED,
                                     resp);
@@ -223,10 +217,7 @@ SH_return_backup (struct MHD_Connection *connection,
   resp = MHD_create_response_from_buffer (backup_size,
                                           backup,
                                           MHD_RESPMEM_MUST_FREE);
-  GNUNET_break (MHD_YES ==
-                MHD_add_response_header (resp,
-                                         MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                         "*"));
+  TALER_MHD_add_global_headers (resp);
   {
     char *sig_s;
     char *prev_s;
