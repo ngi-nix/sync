@@ -241,6 +241,11 @@ url_handler (void *cls,
                                              upload_data_size);
     }
     if (0 == strcasecmp (method,
+                         MHD_HTTP_METHOD_OPTIONS))
+    {
+      return TALER_MHD_reply_cors_preflight (connection);
+    }
+    if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_GET))
     {
       return SH_backup_get (connection,
@@ -270,27 +275,34 @@ url_handler (void *cls,
   {
     struct SH_RequestHandler *rh = &handlers[i];
 
-    if ( (0 == strcmp (url,
-                       rh->url)) &&
-         ( (NULL == rh->method) ||
-           (0 == strcasecmp (method,
-                             rh->method)) ) )
+    if (0 == strcmp (url,
+                     rh->url))
     {
-      int ret;
-
-      ret = rh->handler (rh,
-                         connection,
-                         con_cls,
-                         upload_data,
-                         upload_data_size);
-      hc = *con_cls;
-      if (NULL != hc)
+      if (0 == strcasecmp (method,
+                           MHD_HTTP_METHOD_OPTIONS))
       {
-        /* Store the async context ID, so we can restore it if
-         * we get another callack for this request. */
-        hc->async_scope_id = aid;
+        return TALER_MHD_reply_cors_preflight (connection);
       }
-      return ret;
+      if ( (NULL == rh->method) ||
+           (0 == strcasecmp (method,
+                             rh->method)) )
+      {
+        int ret;
+
+        ret = rh->handler (rh,
+                           connection,
+                           con_cls,
+                           upload_data,
+                           upload_data_size);
+        hc = *con_cls;
+        if (NULL != hc)
+        {
+          /* Store the async context ID, so we can restore it if
+           * we get another callack for this request. */
+          hc->async_scope_id = aid;
+        }
+        return ret;
+      }
     }
   }
   return SH_MHD_handler_static_response (&h404,
