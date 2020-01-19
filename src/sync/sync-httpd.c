@@ -549,10 +549,10 @@ run (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      TALER_config_get_denom (config,
-                              "sync",
-                              "ANNUAL_FEE",
-                              &SH_annual_fee))
+      TALER_config_get_amount (config,
+                               "sync",
+                               "ANNUAL_FEE",
+                               &SH_annual_fee))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "sync",
