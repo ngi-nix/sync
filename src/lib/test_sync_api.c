@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  Copyright (C) 2014-2019 Taler Systems SA
+  Copyright (C) 2014-2020 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as
@@ -48,9 +48,44 @@
 #define EXCHANGE_URL "http://localhost:8081/"
 
 /**
- * URL of the fakebank.
+ * Account number of the exchange at the bank.
  */
-static char *fakebank_url;
+#define EXCHANGE_ACCOUNT_NAME "2"
+
+/**
+ * Account number of some user.
+ */
+#define USER_ACCOUNT_NAME "62"
+
+/**
+ * Account number used by the merchant
+ */
+#define MERCHANT_ACCOUNT_NAME "3"
+
+/**
+ * Payto URI of the customer (payer).
+ */
+static char *payer_payto;
+
+/**
+ * Payto URI of the exchange (escrow account).
+ */
+static char *exchange_payto;
+
+/**
+ * Payto URI of the merchant (receiver).
+ */
+static char *merchant_payto;
+
+/**
+ * Configuration of the bank.
+ */
+static struct TALER_TESTING_BankConfiguration bc;
+
+/**
+ * Configuration of the exchange.
+ */
+static struct TALER_TESTING_ExchangeConfiguration ec;
 
 /**
  * Merchant base URL.
@@ -72,40 +107,6 @@ static struct GNUNET_OS_Process *merchantd;
  */
 static struct GNUNET_OS_Process *syncd;
 
-/**
- * Exchange base URL.
- */
-static char *exchange_url;
-
-/**
- * Auditor base URL; only used to fix FTBFS.
- */
-static char *auditor_url;
-
-/**
- * Account number of the exchange at the bank.
- */
-#define EXCHANGE_ACCOUNT_NO 2
-
-/**
- * Account number of some user.
- */
-#define USER_ACCOUNT_NO 62
-
-/**
- * Account number used by the merchant
- */
-#define MERCHANT_ACCOUNT_NO 3
-
-/**
- * User name. Never checked by fakebank.
- */
-#define USER_LOGIN_NAME "user42"
-
-/**
- * User password. Never checked by fakebank.
- */
-#define USER_LOGIN_PASS "pass42"
 
 /**
  * Execute the taler-exchange-wirewatch command with
@@ -113,17 +114,13 @@ static char *auditor_url;
  *
  * @param label label to use for the command.
  */
-#define CMD_EXEC_WIREWATCH(label) \
-  TALER_TESTING_cmd_exec_wirewatch (label, CONFIG_FILE)
+static struct TALER_TESTING_Command
+cmd_exec_wirewatch (char *label)
+{
+  return TALER_TESTING_cmd_exec_wirewatch (label,
+                                           CONFIG_FILE);
+}
 
-/**
- * Execute the taler-exchange-aggregator command with
- * our configuration file.
- *
- * @param label label to use for the command.
- */
-#define CMD_EXEC_AGGREGATOR(label) \
-  TALER_TESTING_cmd_exec_aggregator (label, CONFIG_FILE)
 
 /**
  * Run wire transfer of funds from some user's account to the
@@ -133,25 +130,15 @@ static char *auditor_url;
  * @param amount amount to transfer, i.e. "EUR:1"
  * @param url exchange_url
  */
-#define CMD_TRANSFER_TO_EXCHANGE(label,amount) \
-  TALER_TESTING_cmd_fakebank_transfer (label, amount, \
-                                       fakebank_url, USER_ACCOUNT_NO, \
-                                       EXCHANGE_ACCOUNT_NO, \
-                                       USER_LOGIN_NAME, USER_LOGIN_PASS, \
-                                       EXCHANGE_URL)
-
-/**
- * Run wire transfer of funds from some user's account to the
- * exchange.
- *
- * @param label label to use for the command.
- * @param amount amount to transfer, i.e. "EUR:1"
- */
-#define CMD_TRANSFER_TO_EXCHANGE_SUBJECT(label,amount,subject) \
-  TALER_TESTING_cmd_fakebank_transfer_with_subject \
-    (label, amount, fakebank_url, USER_ACCOUNT_NO, \
-    EXCHANGE_ACCOUNT_NO, USER_LOGIN_NAME, USER_LOGIN_PASS, \
-    subject)
+static struct TALER_TESTING_Command
+cmd_transfer_to_exchange (const char *label,
+                          const char *amount)
+{
+  return TALER_TESTING_cmd_admin_add_incoming (label,
+                                               amount,
+                                               &bc.exchange_auth,
+                                               payer_payto);
+}
 
 
 /**
@@ -168,13 +155,13 @@ run (void *cls,
     /**
      * Move money to the exchange's bank account.
      */
-    CMD_TRANSFER_TO_EXCHANGE ("create-reserve-1",
+    cmd_transfer_to_exchange ("create-reserve-1",
                               "EUR:10.02"),
     /**
      * Make a reserve exist, according to the previous
      * transfer.
      */
-    CMD_EXEC_WIREWATCH ("wirewatch-1"),
+    cmd_exec_wirewatch ("wirewatch-1"),
     TALER_TESTING_cmd_withdraw_amount
       ("withdraw-coin-1",
       "create-reserve-1",
@@ -264,7 +251,7 @@ run (void *cls,
 
   TALER_TESTING_run_with_fakebank (is,
                                    commands,
-                                   fakebank_url);
+                                   bc.exchange_auth.wire_gateway_url);
 }
 
 
@@ -280,14 +267,18 @@ main (int argc,
   GNUNET_log_setup ("test-sync-api",
                     "DEBUG",
                     NULL);
-  if (NULL ==
-      (fakebank_url = TALER_TESTING_prepare_fakebank
-                        (CONFIG_FILE,
-                        "account-exchange")))
+  if (GNUNET_OK !=
+      TALER_TESTING_prepare_fakebank (CONFIG_FILE,
+                                      "exchange-account-exchange",
+                                      &bc))
     return 77;
+  payer_payto = ("payto://x-taler-bank/localhost/" USER_ACCOUNT_NAME);
+  exchange_payto = ("payto://x-taler-bank/localhost/" EXCHANGE_ACCOUNT_NAME);
+  merchant_payto = ("payto://x-taler-bank/localhost/" MERCHANT_ACCOUNT_NAME);
   if (NULL ==
       (merchant_url = TALER_TESTING_prepare_merchant (CONFIG_FILE)))
     return 77;
+  TALER_TESTING_cleanup_files (CONFIG_FILE);
 
   if (NULL ==
       (sync_url = SYNC_TESTING_prepare_sync (CONFIG_FILE)))
@@ -296,8 +287,7 @@ main (int argc,
   TALER_TESTING_cleanup_files (CONFIG_FILE);
 
   switch (TALER_TESTING_prepare_exchange (CONFIG_FILE,
-                                          &auditor_url,
-                                          &exchange_url))
+                                          &ec))
   {
   case GNUNET_SYSERR:
     GNUNET_break (0);
@@ -308,11 +298,13 @@ main (int argc,
   case GNUNET_OK:
 
     if (NULL == (merchantd =
-                   TALER_TESTING_run_merchant (CONFIG_FILE, merchant_url)))
+                   TALER_TESTING_run_merchant (CONFIG_FILE,
+                                               merchant_url)))
       return 1;
 
     if (NULL == (syncd =
-                   SYNC_TESTING_run_sync (CONFIG_FILE, sync_url)))
+                   SYNC_TESTING_run_sync (CONFIG_FILE,
+                                          sync_url)))
       return 1;
 
     ret = TALER_TESTING_setup_with_exchange (&run,

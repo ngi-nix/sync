@@ -1174,6 +1174,7 @@ libsync_plugin_db_postgres_init (void *cls)
   pg->cfg = cfg;
   pg->conn = GNUNET_PQ_connect_with_cfg (cfg,
                                          "syncdb-postgres",
+                                         NULL,
                                          es,
                                          ps);
   if (NULL == pg->conn)
