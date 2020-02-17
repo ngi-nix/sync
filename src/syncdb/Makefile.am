@@ -23,7 +23,7 @@ sync_dbinit_SOURCES = \
 sync_dbinit_LDADD = \
   $(LIBGCRYPT_LIBS) \
   $(top_builddir)/src/util/libsyncutil.la \
-  syncdb.la \
+  libsyncdb.la \
   -ltalerutil \
   -lgnunetutil
 
