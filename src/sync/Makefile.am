@@ -1,6 +1,11 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+if USE_COVERAGE
+  AM_CFLAGS = --coverage -O0
+  XLIB = -lgcov
+endif
+
 pkgcfgdir = $(prefix)/share/sync/config.d/
 
 pkgcfg_DATA = \
@@ -26,7 +31,8 @@ sync_httpd_LDADD = \
   -ltalerutil \
   -lgnunetcurl \
   -lgnunetjson \
-  -lgnunetutil
+  -lgnunetutil \
+  $(XLIB)
 
 EXTRA_DIST = \
   $(pkgcfg_DATA)
