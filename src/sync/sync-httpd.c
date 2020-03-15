@@ -91,24 +91,6 @@ struct SYNC_DatabasePlugin *db;
 
 
 /**
- * Return #GNUNET_YES if given a valid correlation ID and
- * #GNUNET_NO otherwise.
- *
- * @returns #GNUNET_YES iff given a valid correlation ID
- */
-static int
-is_valid_correlation_id (const char *correlation_id)
-{
-  if (strlen (correlation_id) >= 64)
-    return GNUNET_NO;
-  for (size_t i = 0; i < strlen (correlation_id); i++)
-    if (! (isalnum (correlation_id[i]) || (correlation_id[i] == '-')))
-      return GNUNET_NO;
-  return GNUNET_YES;
-}
-
-
-/**
  * A client has requested the given url using the given method
  * (#MHD_HTTP_METHOD_GET, #MHD_HTTP_METHOD_PUT,
  * #MHD_HTTP_METHOD_DELETE, #MHD_HTTP_METHOD_POST, etc).  The callback
@@ -198,7 +180,7 @@ url_handler (void *cls,
                                                   MHD_HEADER_KIND,
                                                   "Sync-Correlation-Id");
     if ((NULL != correlation_id) &&
-        (GNUNET_YES != is_valid_correlation_id (correlation_id)))
+        (GNUNET_YES != GNUNET_CURL_is_valid_scope_id (correlation_id)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "illegal incoming correlation ID\n");
