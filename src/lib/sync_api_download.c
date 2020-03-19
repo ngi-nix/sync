@@ -192,18 +192,21 @@ handle_header (char *buffer,
   char *ndup;
   const char *hdr_type;
   char *hdr_val;
+  char *sp;
 
   ndup = GNUNET_strndup (buffer,
                          total);
-  hdr_type = strtok (ndup,
-                     ":");
+  hdr_type = strtok_r (ndup,
+                       ":",
+                       &sp);
   if (NULL == hdr_type)
   {
     GNUNET_free (ndup);
     return total;
   }
-  hdr_val = strtok (NULL,
-                    "\n\r");
+  hdr_val = strtok_r (NULL,
+                      "\n\r",
+                      &sp);
   if (NULL == hdr_val)
   {
     GNUNET_free (ndup);
