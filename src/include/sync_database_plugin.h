@@ -41,7 +41,7 @@ enum SYNC_DB_QueryStatus
   /**
    * Update failed because the old backup hash does not match what we previously had in the DB.
    */
-  SYNC_DB_OLD_BACKUP_MISSMATCH = -4,
+  SYNC_DB_OLD_BACKUP_MISMATCH = -4,
 
   /**
    * Account is unpaid / does not exist.

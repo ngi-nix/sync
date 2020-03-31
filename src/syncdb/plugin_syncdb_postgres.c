@@ -560,7 +560,7 @@ postgres_store_backup (void *cls,
   if (0 != GNUNET_memcmp (&bh,
                           backup_hash))
     /* previous conflicting backup exists */
-    return SYNC_DB_OLD_BACKUP_MISSMATCH;
+    return SYNC_DB_OLD_BACKUP_MISMATCH;
   /* backup identical to what was provided, no change */
   return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
 }
@@ -705,11 +705,11 @@ postgres_update_backup (void *cls,
   }
   if (0 == GNUNET_memcmp (&bh,
                           old_backup_hash))
-    /* all constraints seem satisified, original error must
+    /* all constraints seem satisfied, original error must
        have been a hard error */
     return GNUNET_DB_STATUS_HARD_ERROR;
   /* previous backup does not match old_backup_hash */
-  return SYNC_DB_OLD_BACKUP_MISSMATCH;
+  return SYNC_DB_OLD_BACKUP_MISMATCH;
 }
 
 

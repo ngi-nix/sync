@@ -540,7 +540,7 @@ handle_database_error (struct BackupContext *bc,
                                        MHD_HTTP_NOT_FOUND,
                                        TALER_EC_SYNC_PREVIOUS_BACKUP_UNKNOWN,
                                        "Cannot update, no existing backup known");
-  case SYNC_DB_OLD_BACKUP_MISSMATCH:
+  case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Conflict detected, returning existing backup\n");
     return SH_return_backup (bc->con,
@@ -743,7 +743,7 @@ SH_backup_post (struct MHD_Connection *connection,
     /* get ready to hash (done here as we may go async for payments next) */
     bc->hash_ctx = GNUNET_CRYPTO_hash_context_start ();
 
-    /* Check database to see if the transaction is permissable */
+    /* Check database to see if the transaction is permissible */
     {
       struct GNUNET_HashCode hc;
       enum SYNC_DB_QueryStatus qs;

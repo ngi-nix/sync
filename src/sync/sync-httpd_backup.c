@@ -51,12 +51,12 @@ SH_backup_get (struct MHD_Connection *connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
                                        "unexpected return status (backup missing)");
-  case SYNC_DB_OLD_BACKUP_MISSMATCH:
+  case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                       "unexpected return status (backup missmatch)");
+                                       "unexpected return status (backup mismatch)");
   case SYNC_DB_PAYMENT_REQUIRED:
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_NOT_FOUND,
@@ -176,12 +176,12 @@ SH_return_backup (struct MHD_Connection *connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
                                        "unexpected return status (backup missing)");
-  case SYNC_DB_OLD_BACKUP_MISSMATCH:
+  case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                       "unexpected return status (backup missmatch)");
+                                       "unexpected return status (backup mismatch)");
   case SYNC_DB_PAYMENT_REQUIRED:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,

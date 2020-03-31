@@ -148,7 +148,7 @@ run (void *cls)
                                     &h2,
                                     4,
                                     "DATA"));
-  FAILIF (SYNC_DB_OLD_BACKUP_MISSMATCH !=
+  FAILIF (SYNC_DB_OLD_BACKUP_MISMATCH !=
           plugin->update_backup_TR (plugin->cls,
                                     &account_pub,
                                     &h,

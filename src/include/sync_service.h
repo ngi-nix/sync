@@ -307,7 +307,7 @@ struct SYNC_DownloadDetails
  *            to verify backup chains)
  * @param curr_backup_hash hash over @a backup (verified)
  * @param backup_size number of bytes in @a backup
- * @param backup the lastest backup as downloaded from the
+ * @param backup the latest backup as downloaded from the
  *        server and affirmed by @a sig
  */
 typedef void
