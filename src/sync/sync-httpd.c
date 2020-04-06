@@ -305,6 +305,12 @@ static void
 do_shutdown (void *cls)
 {
   (void) cls;
+  SH_resume_all_bc ();
+  if (NULL != mhd_task)
+  {
+    GNUNET_SCHEDULER_cancel (mhd_task);
+    mhd_task = NULL;
+  }
   if (NULL != SH_ctx)
   {
     GNUNET_CURL_fini (SH_ctx);
@@ -314,12 +320,6 @@ do_shutdown (void *cls)
   {
     GNUNET_CURL_gnunet_rc_destroy (rc);
     rc = NULL;
-  }
-  SH_resume_all_bc ();
-  if (NULL != mhd_task)
-  {
-    GNUNET_SCHEDULER_cancel (mhd_task);
-    mhd_task = NULL;
   }
   if (NULL != mhd)
   {
