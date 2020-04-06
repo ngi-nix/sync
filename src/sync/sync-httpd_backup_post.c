@@ -245,17 +245,12 @@ make_payment_request (const char *order_id)
  * /contract request to a merchant.
  *
  * @param cls our `struct BackupContext`
- * @param http_status HTTP response code, 200 indicates success;
- *                    0 if the backend's reply is bogus (fails to follow the protocol)
- * @param ec taler-specific error code
- * @param obj raw JSON reply, or error details if the request failed
+ * @param hr HTTP response details
  * @param order_id order id of the newly created order
  */
 static void
 proposal_cb (void *cls,
-             unsigned int http_status,
-             enum TALER_ErrorCode ec,
-             const json_t *obj,
+             const struct TALER_MERCHANT_HttpResponse *hr,
              const char *order_id)
 {
   struct BackupContext *bc = cls;
@@ -270,24 +265,27 @@ proposal_cb (void *cls,
                                bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
-  if (MHD_HTTP_OK != http_status)
+  if (MHD_HTTP_OK != hr->http_status)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Backend returned status %u/%u\n",
-                http_status,
-                (unsigned int) ec);
+                hr->http_status,
+                (unsigned int) hr->ec);
     GNUNET_break (0);
-    bc->resp = TALER_MHD_make_json_pack ("{s:I, s:s, s:I, s:I}",
+    bc->resp = TALER_MHD_make_json_pack ("{s:I, s:s, s:I, s:I, s:O}",
                                          "code",
                                          (json_int_t)
                                          TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR,
                                          "hint",
                                          "Failed to setup order with merchant backend",
-                                         "backend-ec", (json_int_t) ec,
+                                         "backend-ec",
+                                         (json_int_t) hr->ec,
                                          "backend-http-status",
-                                         (json_int_t) http_status);
+                                         (json_int_t) hr->http_status,
+                                         "backend-reply",
+                                         hr->reply);
     GNUNET_assert (NULL != bc->resp);
-    bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+    bc->response_code = MHD_HTTP_FAILED_DEPENDENCY;
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -350,8 +348,7 @@ ongoing_payment_cb (void *cls,
  * Callback to process a GET /check-payment request
  *
  * @param cls our `struct BackupContext`
- * @param http_status HTTP status code for this request
- * @param obj raw response body
+ * @param hr HTTP response details
  * @param paid #GNUNET_YES if the payment is settled, #GNUNET_NO if not
  *        settled, $GNUNET_SYSERR on error
  *        (note that refunded payments are returned as paid!)
@@ -364,8 +361,7 @@ ongoing_payment_cb (void *cls,
  */
 static void
 check_payment_cb (void *cls,
-                  unsigned int http_status,
-                  const json_t *obj,
+                  const struct TALER_MERCHANT_HttpResponse *hr,
                   int paid,
                   int refunded,
                   struct TALER_Amount *refund_amount,
