@@ -109,17 +109,18 @@ handle_download_finished (void *cls,
   case MHD_HTTP_OK:
     {
       struct SYNC_DownloadDetails dd;
-      struct SYNC_UploadSignaturePS usp;
+      struct SYNC_UploadSignaturePS usp = {
+        .purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD),
+        .purpose.size = htonl (sizeof (usp)),
+        .old_backup_hash = download->sync_previous
+      };
 
-      usp.purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD);
-      usp.purpose.size = htonl (sizeof (usp));
-      usp.old_backup_hash = download->sync_previous;
       GNUNET_CRYPTO_hash (data,
                           data_size,
                           &usp.new_backup_hash);
       if (GNUNET_OK !=
           GNUNET_CRYPTO_eddsa_verify (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD,
-                                      &usp.purpose,
+                                      &usp,
                                       &download->account_sig.eddsa_sig,
                                       &download->account_pub.eddsa_pub))
       {

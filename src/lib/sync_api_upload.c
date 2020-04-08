@@ -281,28 +281,23 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
              SYNC_UploadCallback cb,
              void *cb_cls)
 {
-  struct SYNC_UploadSignaturePS usp;
   struct SYNC_AccountSignatureP account_sig;
   struct SYNC_UploadOperation *uo;
   CURL *eh;
   struct curl_slist *job_headers;
+  struct SYNC_UploadSignaturePS usp = {
+    .purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD),
+    .purpose.size = htonl (sizeof (usp))
+  };
 
-  memset (&usp, 0, sizeof (usp));
-  usp.purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD);
-  usp.purpose.size = htonl (sizeof (usp));
   if (NULL != prev_backup_hash)
     usp.old_backup_hash = *prev_backup_hash;
   GNUNET_CRYPTO_hash (backup,
                       backup_size,
                       &usp.new_backup_hash);
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_sign (&priv->eddsa_priv,
-                                &usp.purpose,
-                                &account_sig.eddsa_sig))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
+  GNUNET_CRYPTO_eddsa_sign (&priv->eddsa_priv,
+                            &usp,
+                            &account_sig.eddsa_sig);
 
   /* setup our HTTP headers */
   job_headers = NULL;

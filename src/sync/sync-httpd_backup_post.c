@@ -717,15 +717,16 @@ SH_backup_post (struct MHD_Connection *connection,
     }
     /* validate signature */
     {
-      struct SYNC_UploadSignaturePS usp;
+      struct SYNC_UploadSignaturePS usp = {
+        .purpose.size = htonl (sizeof (usp)),
+        .purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD),
+        .old_backup_hash = bc->old_backup_hash,
+        .new_backup_hash = bc->new_backup_hash
+      };
 
-      usp.purpose.size = htonl (sizeof (struct SYNC_UploadSignaturePS));
-      usp.purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD);
-      usp.old_backup_hash = bc->old_backup_hash;
-      usp.new_backup_hash = bc->new_backup_hash;
       if (GNUNET_OK !=
           GNUNET_CRYPTO_eddsa_verify (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD,
-                                      &usp.purpose,
+                                      &usp,
                                       &bc->account_sig.eddsa_sig,
                                       &account->eddsa_pub))
       {
