@@ -32,13 +32,13 @@
  * @param account public key of the account the request is for
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_backup_get (struct MHD_Connection *connection,
                const struct SYNC_AccountPublicKeyP *account)
 {
   struct GNUNET_HashCode backup_hash;
   enum SYNC_DB_QueryStatus qs;
-  int ret;
+  MHD_RESULT ret;
 
   qs = db->lookup_account_TR (db->cls,
                               account,
@@ -147,14 +147,14 @@ SH_backup_get (struct MHD_Connection *connection,
  *  with on success (#MHD_HTTP_OK or #MHD_HTTP_CONFLICT)
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_return_backup (struct MHD_Connection *connection,
                   const struct SYNC_AccountPublicKeyP *account,
                   unsigned int default_http_status)
 {
   enum SYNC_DB_QueryStatus qs;
   struct MHD_Response *resp;
-  int ret;
+  MHD_RESULT ret;
   struct SYNC_AccountSignatureP account_sig;
   struct GNUNET_HashCode backup_hash;
   struct GNUNET_HashCode prev_hash;

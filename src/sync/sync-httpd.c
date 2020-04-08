@@ -129,7 +129,7 @@ struct SYNC_DatabasePlugin *db;
  *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
-static int
+static MHD_RESULT
 url_handler (void *cls,
              struct MHD_Connection *connection,
              const char *url,
@@ -269,7 +269,7 @@ url_handler (void *cls,
            (0 == strcasecmp (method,
                              rh->method)) )
       {
-        int ret;
+        MHD_RESULT ret;
 
         ret = rh->handler (rh,
                            connection,

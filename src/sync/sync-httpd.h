@@ -25,6 +25,7 @@
 #include <microhttpd.h>
 #include <taler/taler_mhd_lib.h>
 #include "sync_database_lib.h"
+#include <gnunet/gnunet_mhd_compat.h>
 
 /**
  * @brief Struct describing an URL and the handler for it.
@@ -68,16 +69,16 @@ struct SH_RequestHandler
    * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
    * @return MHD result code
    */
-  int (*handler)(struct SH_RequestHandler *rh,
-                 struct MHD_Connection *connection,
-                 void **connection_cls,
-                 const char *upload_data,
-                 size_t *upload_data_size);
+  MHD_RESULT (*handler)(struct SH_RequestHandler *rh,
+                        struct MHD_Connection *connection,
+                        void **connection_cls,
+                        const char *upload_data,
+                        size_t *upload_data_size);
 
   /**
    * Default response code.
    */
-  int response_code;
+  unsigned int response_code;
 };
 
 

@@ -33,7 +33,7 @@
  * @param mi merchant backend instance, never NULL
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_handler_terms (struct SH_RequestHandler *rh,
                   struct MHD_Connection *connection,
                   void **connection_cls,

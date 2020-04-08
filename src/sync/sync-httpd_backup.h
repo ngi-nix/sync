@@ -39,7 +39,7 @@ SH_resume_all_bc (void);
  *  with on success (#MHD_HTTP_OK or #MHD_HTTP_CONFLICT)
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_return_backup (struct MHD_Connection *connection,
                   const struct SYNC_AccountPublicKeyP *account,
                   unsigned int default_http_status);
@@ -53,7 +53,7 @@ SH_return_backup (struct MHD_Connection *connection,
  * @param account public key of the account the request is for
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_backup_get (struct MHD_Connection *connection,
                const struct SYNC_AccountPublicKeyP *account);
 
@@ -66,7 +66,7 @@ SH_backup_get (struct MHD_Connection *connection,
  * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_backup_post (struct MHD_Connection *connection,
                 void **con_cls,
                 const struct SYNC_AccountPublicKeyP *account,

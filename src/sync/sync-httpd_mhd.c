@@ -38,7 +38,7 @@
  * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_MHD_handler_static_response (struct SH_RequestHandler *rh,
                                 struct MHD_Connection *connection,
                                 void **connection_cls,
@@ -69,7 +69,7 @@ SH_MHD_handler_static_response (struct SH_RequestHandler *rh,
  * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_MHD_handler_agpl_redirect (struct SH_RequestHandler *rh,
                               struct MHD_Connection *connection,
                               void **connection_cls,

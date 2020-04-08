@@ -457,7 +457,7 @@ await_payment (struct BackupContext *bc,
  *                #GNUNET_NO if payment is needed
  * @return MHD status code
  */
-static int
+static MHD_RESULT
 begin_payment (struct BackupContext *bc,
                int pay_req)
 {
@@ -471,7 +471,7 @@ begin_payment (struct BackupContext *bc,
   if (qs < 0)
   {
     struct MHD_Response *resp;
-    int ret;
+    MHD_RESULT ret;
 
     resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
                                  "Failed to check for existing orders in sync database");
@@ -523,7 +523,7 @@ begin_payment (struct BackupContext *bc,
  * @param qs query status to handle
  * @return #MHD_YES or #MHD_NO
  */
-static int
+static MHD_RESULT
 handle_database_error (struct BackupContext *bc,
                        enum SYNC_DB_QueryStatus qs)
 {
@@ -594,7 +594,7 @@ handle_database_error (struct BackupContext *bc,
  * @param[in,out] upload_data_size number of bytes (left) in @a upload_data
  * @return MHD result code
  */
-int
+MHD_RESULT
 SH_backup_post (struct MHD_Connection *connection,
                 void **con_cls,
                 const struct SYNC_AccountPublicKeyP *account,
@@ -758,7 +758,7 @@ SH_backup_post (struct MHD_Connection *connection,
       {
         /* Refuse upload: we already have that backup! */
         struct MHD_Response *resp;
-        int ret;
+        MHD_RESULT ret;
 
         resp = MHD_create_response_from_buffer (0,
                                                 NULL,
@@ -827,7 +827,7 @@ SH_backup_post (struct MHD_Connection *connection,
   }
   if (NULL != bc->resp)
   {
-    int ret;
+    MHD_RESULT ret;
 
     /* We generated a response asynchronously, queue that */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -896,7 +896,7 @@ SH_backup_post (struct MHD_Connection *connection,
          theoretically happen if another equivalent upload succeeded
          since we last checked!) */
       struct MHD_Response *resp;
-      int ret;
+      MHD_RESULT ret;
 
       resp = MHD_create_response_from_buffer (0,
                                               NULL,
@@ -914,7 +914,7 @@ SH_backup_post (struct MHD_Connection *connection,
   /* generate main (204) standard success reply */
   {
     struct MHD_Response *resp;
-    int ret;
+    MHD_RESULT ret;
 
     resp = MHD_create_response_from_buffer (0,
                                             NULL,
