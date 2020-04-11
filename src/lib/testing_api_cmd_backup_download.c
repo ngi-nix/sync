@@ -271,15 +271,14 @@ SYNC_TESTING_cmd_backup_nx (const char *label,
                             const char *sync_url)
 {
   struct BackupDownloadState *bds;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv;
 
   bds = GNUNET_new (struct BackupDownloadState);
   bds->http_status = MHD_HTTP_NOT_FOUND;
   bds->sync_url = sync_url;
-  priv = GNUNET_CRYPTO_eddsa_key_create ();
-  GNUNET_CRYPTO_eddsa_key_get_public (priv,
+  GNUNET_CRYPTO_eddsa_key_create (&priv);
+  GNUNET_CRYPTO_eddsa_key_get_public (&priv,
                                       &bds->sync_pub.eddsa_pub);
-  GNUNET_free (priv);
   {
     struct TALER_TESTING_Command cmd = {
       .cls = bds,

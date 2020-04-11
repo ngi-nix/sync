@@ -330,13 +330,9 @@ backup_upload_run (void *cls,
   }
   else
   {
-    struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
-
-    priv = GNUNET_CRYPTO_eddsa_key_create ();
-    bus->sync_priv.eddsa_priv = *priv;
-    GNUNET_CRYPTO_eddsa_key_get_public (priv,
+    GNUNET_CRYPTO_eddsa_key_create (&bus->sync_priv.eddsa_priv);
+    GNUNET_CRYPTO_eddsa_key_get_public (&bus->sync_priv.eddsa_priv,
                                         &bus->sync_pub.eddsa_pub);
-    GNUNET_free (priv);
   }
   if (0 != (SYNC_TESTING_UO_PREV_HASH_WRONG & bus->uopt))
     GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
