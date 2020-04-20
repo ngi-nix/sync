@@ -627,7 +627,6 @@ main (int argc,
                                "connection-close",
                                "force HTTP connections to be closed after each request",
                                &SH_sync_connection_close),
-
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -640,7 +639,8 @@ main (int argc,
       GNUNET_PROGRAM_run (argc, argv,
                           "sync-httpd",
                           "sync HTTP interface",
-                          options, &run, NULL))
+                          options,
+                          &run, NULL))
     return 3;
   return (GNUNET_OK == result) ? 0 : 1;
 }
