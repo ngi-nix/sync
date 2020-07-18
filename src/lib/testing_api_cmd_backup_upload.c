@@ -386,7 +386,7 @@ backup_upload_cleanup (void *cls,
     SYNC_upload_cancel (bus->uo);
     bus->uo = NULL;
   }
-  GNUNET_free_non_null (bus->payment_order_id);
+  GNUNET_free (bus->payment_order_id);
   GNUNET_free (bus);
 }
 

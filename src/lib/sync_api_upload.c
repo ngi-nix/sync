@@ -446,7 +446,7 @@ SYNC_upload_cancel (struct SYNC_UploadOperation *uo)
     GNUNET_CURL_job_cancel (uo->job);
     uo->job = NULL;
   }
-  GNUNET_free_non_null (uo->pay_uri);
+  GNUNET_free (uo->pay_uri);
   GNUNET_free (uo->url);
   GNUNET_free (uo);
 }

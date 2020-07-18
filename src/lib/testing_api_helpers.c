@@ -47,8 +47,7 @@ SYNC_TESTING_run_sync (const char *config_filename,
   char *wget_cmd;
 
   sync_proc
-    = GNUNET_OS_start_process (GNUNET_NO,
-                               GNUNET_OS_INHERIT_STD_ALL,
+    = GNUNET_OS_start_process (GNUNET_OS_INHERIT_STD_ALL,
                                NULL, NULL, NULL,
                                "sync-httpd",
                                "sync-httpd",
@@ -147,15 +146,14 @@ SYNC_TESTING_prepare_sync (const char *config_filename)
   }
 
   /* DB preparation */
-  if (NULL == (dbinit_proc = GNUNET_OS_start_process
-                               (GNUNET_NO,
-                               GNUNET_OS_INHERIT_STD_ALL,
-                               NULL, NULL, NULL,
-                               "sync-dbinit",
-                               "sync-dbinit",
-                               "-c", config_filename,
-                               "-r",
-                               NULL)))
+  if (NULL == (dbinit_proc = GNUNET_OS_start_process (
+                 GNUNET_OS_INHERIT_STD_ALL,
+                 NULL, NULL, NULL,
+                 "sync-dbinit",
+                 "sync-dbinit",
+                 "-c", config_filename,
+                 "-r",
+                 NULL)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to run sync-dbinit."

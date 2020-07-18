@@ -95,12 +95,12 @@ struct BackupContext
   /**
    * Used while we are awaiting proposal creation.
    */
-  struct TALER_MERCHANT_ProposalOperation *po;
+  struct TALER_MERCHANT_PostOrdersOperation *po;
 
   /**
    * Used while we are waiting payment.
    */
-  struct TALER_MERCHANT_CheckPaymentOperation *cpo;
+  struct TALER_MERCHANT_OrderMerchantGetHandle *omgh;
 
   /**
    * HTTP response code to use on resume, if non-NULL.
@@ -168,13 +168,13 @@ SH_resume_all_bc ()
     MHD_resume_connection (bc->con);
     if (NULL != bc->po)
     {
-      TALER_MERCHANT_proposal_cancel (bc->po);
+      TALER_MERCHANT_orders_post_cancel (bc->po);
       bc->po = NULL;
     }
-    if (NULL != bc->cpo)
+    if (NULL != bc->omgh)
     {
-      TALER_MERCHANT_check_payment_cancel (bc->cpo);
-      bc->cpo = NULL;
+      TALER_MERCHANT_merchant_order_get_cancel (bc->omgh);
+      bc->omgh = NULL;
     }
   }
 }
@@ -191,13 +191,13 @@ cleanup_ctx (struct TM_HandlerContext *hc)
   struct BackupContext *bc = (struct BackupContext *) hc;
 
   if (NULL != bc->po)
-    TALER_MERCHANT_proposal_cancel (bc->po);
+    TALER_MERCHANT_orders_post_cancel (bc->po);
   if (NULL != bc->hash_ctx)
     GNUNET_CRYPTO_hash_context_abort (bc->hash_ctx);
   if (NULL != bc->resp)
     MHD_destroy_response (bc->resp);
-  GNUNET_free_non_null (bc->existing_order_id);
-  GNUNET_free_non_null (bc->upload);
+  GNUNET_free (bc->existing_order_id);
+  GNUNET_free (bc->upload);
   GNUNET_free (bc);
 }
 
@@ -337,7 +337,7 @@ ongoing_payment_cb (void *cls,
   if ( (NULL == bc->existing_order_id) ||
        (bc->existing_order_timestamp.abs_value_us < timestamp.abs_value_us) )
   {
-    GNUNET_free_non_null (bc->existing_order_id);
+    GNUNET_free (bc->existing_order_id);
     bc->existing_order_id = GNUNET_strdup (order_id);
     bc->existing_order_timestamp = timestamp;
   }
@@ -349,39 +349,26 @@ ongoing_payment_cb (void *cls,
  *
  * @param cls our `struct BackupContext`
  * @param hr HTTP response details
- * @param paid #GNUNET_YES if the payment is settled, #GNUNET_NO if not
- *        settled, $GNUNET_SYSERR on error
- *        (note that refunded payments are returned as paid!)
- * @param refunded #GNUNET_YES if there is at least on refund on this payment,
- *        #GNUNET_NO if refunded, #GNUNET_SYSERR or error
- * @param refunded_amount amount that was refunded, NULL if there
- *        was no refund
- * @param taler_pay_uri the URI that instructs the wallets to process
- *                      the payment
+ * @param osr order status
  */
 static void
 check_payment_cb (void *cls,
                   const struct TALER_MERCHANT_HttpResponse *hr,
-                  int paid,
-                  int refunded,
-                  struct TALER_Amount *refund_amount,
-                  const char *taler_pay_uri)
+                  const struct TALER_MERCHANT_OrderStatusResponse *osr)
 {
   struct BackupContext *bc = cls;
 
   /* refunds are not supported, verify */
-  bc->cpo = NULL;
+  bc->omgh = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Payment status checked: %s\n",
-              paid ? "paid" : "unpaid");
+              osr->paid ? "paid" : "unpaid");
   GNUNET_CONTAINER_DLL_remove (bc_head,
                                bc_tail,
                                bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
-  GNUNET_break ( (GNUNET_NO == refunded) &&
-                 (NULL == refund_amount) );
-  if (paid)
+  if (osr->paid)
   {
     enum SYNC_DB_QueryStatus qs;
 
@@ -435,13 +422,14 @@ await_payment (struct BackupContext *bc,
                                bc);
   MHD_suspend_connection (bc->con);
   bc->order_id = order_id;
-  bc->cpo = TALER_MERCHANT_check_payment (SH_ctx,
-                                          SH_backend_url,
-                                          order_id,
-                                          NULL /* our payments are NOT session-bound */,
-                                          timeout,
-                                          &check_payment_cb,
-                                          bc);
+  bc->omgh = TALER_MERCHANT_merchant_order_get (SH_ctx,
+                                                SH_backend_url,
+                                                order_id,
+                                                NULL /* our payments are NOT session-bound */,
+                                                false,
+                                                timeout,
+                                                &check_payment_cb,
+                                                bc);
   SH_trigger_curl ();
 }
 
@@ -503,11 +491,12 @@ begin_payment (struct BackupContext *bc,
                      "amount", TALER_JSON_from_amount (&SH_annual_fee),
                      "summary", "annual fee for sync service",
                      "fulfillment_url", SH_fulfillment_url);
-  bc->po = TALER_MERCHANT_order_put (SH_ctx,
-                                     SH_backend_url,
-                                     order,
-                                     &proposal_cb,
-                                     bc);
+  bc->po = TALER_MERCHANT_orders_post (SH_ctx,
+                                       SH_backend_url,
+                                       order,
+                                       GNUNET_TIME_UNIT_ZERO,
+                                       &proposal_cb,
+                                       bc);
   SH_trigger_curl ();
   json_decref (order);
   return MHD_YES;

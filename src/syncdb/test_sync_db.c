@@ -244,7 +244,7 @@ run (void *cls)
 
   result = 0;
 drop:
-  GNUNET_free_non_null (b);
+  GNUNET_free (b);
   GNUNET_break (GNUNET_OK ==
                 plugin->drop_tables (plugin->cls));
   SYNC_DB_plugin_unload (plugin);
