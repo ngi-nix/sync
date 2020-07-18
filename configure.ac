@@ -327,8 +327,9 @@ doc/Makefile
 src/Makefile
 src/include/Makefile
 src/lib/Makefile
+src/util/Makefile
 src/sync/Makefile
 src/syncdb/Makefile
-src/util/Makefile
+src/testing/Makefile
 ])
 AC_OUTPUT

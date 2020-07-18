@@ -7,8 +7,7 @@ if USE_COVERAGE
 endif
 
 lib_LTLIBRARIES = \
-  libsync.la \
-  libsynctesting.la
+  libsync.la 
 
 libsync_la_LDFLAGS = \
   -version-info 0:0:0 \
@@ -26,61 +25,3 @@ libsync_la_LIBADD = \
   -ljansson \
   $(XLIB)
 
-libsynctesting_la_LDFLAGS = \
-  -version-info 0:0:0 \
-  -no-undefined
-libsynctesting_la_SOURCES = \
-  testing_api_cmd_backup_download.c \
-  testing_api_cmd_backup_upload.c \
-  testing_api_helpers.c \
-  testing_api_trait_account_pub.c \
-  testing_api_trait_account_priv.c \
-  testing_api_trait_hash.c
-libsynctesting_la_LIBADD = \
-  libsync.la \
-  -ltalerexchange \
-  -ltalerjson \
-  -ltalerutil \
-  -lgnunetcurl \
-  -lgnunetjson \
-  -lgnunetutil \
-  -ljansson \
-  -ltalertesting \
-  $(XLIB)
-
-check_PROGRAMS = \
-  test_sync_api
-
-TESTS = \
-  $(check_PROGRAMS)
-
-EXTRA_DIST = \
-  test_sync_api.conf \
-  test_sync_api_home/.config/taler/exchange/account-2.json \
-  test_sync_api_home/.local/share/taler/exchange/offline-keys/master.priv
-
-test_sync_api_SOURCES = \
-  test_sync_api.c
-test_sync_api_LDADD = \
-  libsync.la \
-  libsynctesting.la \
-  -ltalertesting \
-  -ltalermerchanttesting \
-  -ltalerfakebank \
-  -ltalerbank \
-  -ltalerexchange \
-  -ltalermerchant \
-  -ltalerjson \
-  -ltalerutil \
-  -lgnunetjson \
-  -lgnunetcurl \
-  -lgnunetutil \
-  -ljansson
-
-if HAVE_LIBCURL
-libsync_la_LIBADD += -lcurl
-else
-if HAVE_LIBGNURL
-libsync_la_LIBADD += -lgnurl
-endif
-endif
