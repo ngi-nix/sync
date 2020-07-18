@@ -152,6 +152,13 @@ run (void *cls,
      struct TALER_TESTING_Interpreter *is)
 {
   struct TALER_TESTING_Command commands[] = {
+    TALER_TESTING_cmd_merchant_post_instances ("instance-create-default",
+                                               merchant_url,
+                                               "default",
+                                               merchant_payto,
+                                               "EUR",
+                                               MHD_HTTP_NO_CONTENT),
+
     /**
      * Move money to the exchange's bank account.
      */
@@ -162,16 +169,14 @@ run (void *cls,
      * transfer.
      */
     cmd_exec_wirewatch ("wirewatch-1"),
-    TALER_TESTING_cmd_withdraw_amount
-      ("withdraw-coin-1",
-      "create-reserve-1",
-      "EUR:5",
-      MHD_HTTP_OK),
-    TALER_TESTING_cmd_withdraw_amount
-      ("withdraw-coin-2",
-      "create-reserve-1",
-      "EUR:5",
-      MHD_HTTP_OK),
+    TALER_TESTING_cmd_withdraw_amount ("withdraw-coin-1",
+                                       "create-reserve-1",
+                                       "EUR:5",
+                                       MHD_HTTP_OK),
+    TALER_TESTING_cmd_withdraw_amount ("withdraw-coin-2",
+                                       "create-reserve-1",
+                                       "EUR:5",
+                                       MHD_HTTP_OK),
     /* Failed download: no backup exists */
     SYNC_TESTING_cmd_backup_nx ("backup-download-nx",
                                 sync_url),
@@ -185,20 +190,19 @@ run (void *cls,
                                     "Test-1",
                                     strlen ("Test-1")),
     /* what would we have to pay? */
-    TALER_TESTING_cmd_proposal_lookup ("fetch-proposal",
-                                       merchant_url,
-                                       MHD_HTTP_OK,
-                                       "backup-upload-1",
-                                       NULL),
+    TALER_TESTING_cmd_merchant_claim_order ("fetch-proposal",
+                                            merchant_url,
+                                            MHD_HTTP_OK,
+                                            "backup-upload-1",
+                                            NULL),
     /* make the payment */
-    TALER_TESTING_cmd_pay ("pay-account",
-                           merchant_url,
-                           MHD_HTTP_OK,
-                           "fetch-proposal",
-                           "withdraw-coin-1",
-                           "EUR:5",
-                           "EUR:4.99", /* must match ANNUAL_FEE in config! */
-                           "EUR:0.01"),
+    TALER_TESTING_cmd_merchant_pay_order ("pay-account",
+                                          merchant_url,
+                                          MHD_HTTP_OK,
+                                          "fetch-proposal",
+                                          "withdraw-coin-1",
+                                          "EUR:5",
+                                          "EUR:4.99"), /* must match ANNUAL_FEE in config! */
     /* now upload should succeed */
     SYNC_TESTING_cmd_backup_upload ("backup-upload-2",
                                     sync_url,
