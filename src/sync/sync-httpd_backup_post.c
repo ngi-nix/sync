@@ -207,7 +207,7 @@ cleanup_ctx (struct TM_HandlerContext *hc)
  *
  * @param connection MHD connection
  * @param order_id our backend's order ID
- * @return MHD repsonse to use
+ * @return MHD response to use
  */
 static struct MHD_Response *
 make_payment_request (const char *order_id)
