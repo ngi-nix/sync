@@ -853,7 +853,7 @@ SH_backup_post (struct MHD_Connection *connection,
   {
     enum SYNC_DB_QueryStatus qs;
 
-    if (0 == GNUNET_is_zero (&bc->old_backup_hash))
+    if (GNUNET_YES == GNUNET_is_zero (&bc->old_backup_hash))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Uploading first backup to account\n");
