@@ -258,7 +258,8 @@ postgres_gc (void *cls,
  *
  * @param cls closure
  * @param account_pub account to store @a backup under
- * @param order_id order we created
+ * @param order_id order we create
+ * @param token claim token to use, NULL for none
  * @param amount how much we asked for
  * @return transaction status
  */
@@ -266,19 +267,26 @@ static enum SYNC_DB_QueryStatus
 postgres_store_payment (void *cls,
                         const struct SYNC_AccountPublicKeyP *account_pub,
                         const char *order_id,
+                        const struct TALER_ClaimTokenP *token,
                         const struct TALER_Amount *amount)
 {
   struct PostgresClosure *pg = cls;
   enum GNUNET_DB_QueryStatus qs;
+  struct TALER_ClaimTokenP tok;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (account_pub),
     GNUNET_PQ_query_param_string (order_id),
+    GNUNET_PQ_query_param_auto_from_type (&tok),
     GNUNET_PQ_query_param_absolute_time (&now),
     TALER_PQ_query_param_amount (amount),
     GNUNET_PQ_query_param_end
   };
 
+  if (NULL == token)
+    memset (&tok, 0, sizeof (tok));
+  else
+    tok = *token;
   check_connection (pg);
   postgres_preflight (pg);
   qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
@@ -353,11 +361,14 @@ payment_by_account_cb (void *cls,
     struct GNUNET_TIME_Absolute timestamp;
     char *order_id;
     struct TALER_Amount amount;
+    struct TALER_ClaimTokenP token;
     struct GNUNET_PQ_ResultSpec rs[] = {
       GNUNET_PQ_result_spec_absolute_time ("timestamp",
                                            &timestamp),
       GNUNET_PQ_result_spec_string ("order_id",
                                     &order_id),
+      GNUNET_PQ_result_spec_auto_from_type ("token",
+                                            &token),
       TALER_PQ_result_spec_amount ("amount",
                                    pic->pg->currency,
                                    &amount),
@@ -377,6 +388,7 @@ payment_by_account_cb (void *cls,
     pic->it (pic->it_cls,
              timestamp,
              order_id,
+             &token,
              &amount);
     GNUNET_PQ_cleanup_result (rs);
   }
@@ -1025,6 +1037,7 @@ libsync_plugin_db_postgres_init (void *cls)
     GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS payments"
                             "(account_pub BYTEA CHECK (length(account_pub)=32)"
                             ",order_id VARCHAR PRIMARY KEY"
+                            ",token BYTEA CHECK (length(token)=16)"
                             ",timestamp INT8 NOT NULL"
                             ",amount_val INT8 NOT NULL" /* amount we were paid */
                             ",amount_frac INT4 NOT NULL"
@@ -1058,12 +1071,13 @@ libsync_plugin_db_postgres_init (void *cls)
                             "INSERT INTO payments "
                             "(account_pub"
                             ",order_id"
+                            ",token"
                             ",timestamp"
                             ",amount_val"
                             ",amount_frac"
                             ") VALUES "
-                            "($1,$2,$3,$4,$5);",
-                            5),
+                            "($1,$2,$3,$4,$5,$6);",
+                            6),
     GNUNET_PQ_make_prepare ("payment_done",
                             "UPDATE payments "
                             "SET"
@@ -1103,6 +1117,7 @@ libsync_plugin_db_postgres_init (void *cls)
                             "SELECT"
                             " timestamp"
                             ",order_id"
+                            ",token"
                             ",amount_val"
                             ",amount_frac"
                             " FROM payments"

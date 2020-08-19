@@ -202,7 +202,8 @@ run (void *cls,
                                           "fetch-proposal",
                                           "withdraw-coin-1",
                                           "EUR:5",
-                                          "EUR:4.99"), /* must match ANNUAL_FEE in config! */
+                                          "EUR:4.99", /* must match ANNUAL_FEE in config! */
+                                          "session-id"),
     /* now upload should succeed */
     SYNC_TESTING_cmd_backup_upload ("backup-upload-2",
                                     sync_url,

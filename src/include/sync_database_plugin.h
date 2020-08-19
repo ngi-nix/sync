@@ -76,12 +76,14 @@ enum SYNC_DB_QueryStatus
  * @param cls closure
  * @param timestamp for how long have we been waiting
  * @param order_id order id in the backend
+ * @param token claim token, or NULL for none
  * @param amount how much is the order for
  */
 typedef void
 (*SYNC_DB_PaymentPendingIterator)(void *cls,
                                   struct GNUNET_TIME_Absolute timestamp,
                                   const char *order_id,
+                                  const struct TALER_ClaimTokenP *token,
                                   const struct TALER_Amount *amount);
 
 
@@ -166,6 +168,7 @@ struct SYNC_DatabasePlugin
    * @param cls closure
    * @param account_pub account to store @a backup under
    * @param order_id order we created
+   * @param token claim token, or NULL for none
    * @param amount how much we asked for
    * @return transaction status
    */
@@ -173,6 +176,7 @@ struct SYNC_DatabasePlugin
   (*store_payment_TR)(void *cls,
                       const struct SYNC_AccountPublicKeyP *account_pub,
                       const char *order_id,
+                      const struct TALER_ClaimTokenP *token,
                       const struct TALER_Amount *amount);
 
 

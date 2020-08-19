@@ -26,6 +26,7 @@
 #include "sync_testing_lib.h"
 #include <taler/taler_util.h>
 #include <taler/taler_testing_lib.h>
+#include <taler/taler_merchant_service.h>
 #include "sync_testing_lib.h"
 
 /**
@@ -82,6 +83,11 @@ struct BackupUploadState
    * Payment order ID we got back, if any. Otherwise NULL.
    */
   char *payment_order_id;
+
+  /**
+   * Claim token we got back, if any. Otherwise all zeros.
+   */
+  struct TALER_ClaimTokenP token;
 
   /**
    * Payment order ID we are to provide in the request, may be NULL.
@@ -159,37 +165,20 @@ backup_upload_cb (void *cls,
       break;
     case SYNC_US_PAYMENT_REQUIRED:
       {
-        const char *m;
+        struct TALER_MERCHANT_PayUriData pd;
 
-        if (0 != strncmp (ud->details.payment_request,
-                          "taler://pay/http",
-                          strlen ("taler://pay/http")))
+        if (GNUNET_OK !=
+            TALER_MERCHANT_parse_pay_uri (ud->details.payment_request,
+                                          &pd))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Did not find `%s' in `%s'\n",
-                      "/-/-/",
-                      ud->details.payment_request);
+          GNUNET_break (0);
           TALER_TESTING_interpreter_fail (bus->is);
           return;
         }
-        m = strstr (ud->details.payment_request, "/-/-/");
-        if (NULL == m)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Did not find `%s' in `%s'\n",
-                      "/-/-/",
-                      ud->details.payment_request);
-          TALER_TESTING_interpreter_fail (bus->is);
-          /* NOTE: The above is a simplifying assumption for the
-             test-logic, hitting this code merely means that
-             the assumptions for the test (i.e. no instance) are
-             not satisfied, it is not inherently the case that
-             the above token must appear in the payment request!
-
-             So if you hit this, you might just want to modify
-             the code here to handle this better! */return;
-        }
-        bus->payment_order_id = GNUNET_strdup (&m[strlen ("/-/-/")]);
+        bus->payment_order_id = GNUNET_strdup (pd.order_id);
+        if (NULL != pd.claim_token)
+          bus->token = *pd.claim_token;
+        TALER_MERCHANT_parse_pay_uri_free (&pd);
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "Order ID from Sync service is `%s'\n",
                     bus->payment_order_id);
@@ -255,9 +244,9 @@ backup_upload_run (void *cls,
   {
     const struct TALER_TESTING_Command *ref;
 
-    ref = TALER_TESTING_interpreter_lookup_command
-            (is,
-            bus->prev_upload);
+    ref = TALER_TESTING_interpreter_lookup_command (
+      is,
+      bus->prev_upload);
     if (NULL == ref)
     {
       GNUNET_break (0);
@@ -267,16 +256,13 @@ backup_upload_run (void *cls,
     {
       const struct GNUNET_HashCode *h;
 
-      if (GNUNET_OK !=
+      if (GNUNET_OK ==
           SYNC_TESTING_get_trait_hash (ref,
                                        SYNC_TESTING_TRAIT_HASH_CURRENT,
                                        &h))
       {
-        GNUNET_break (0);
-        TALER_TESTING_interpreter_fail (bus->is);
-        return;
+        bus->prev_hash = *h;
       }
-      bus->prev_hash = *h;
     }
     {
       const struct SYNC_AccountPrivateKeyP *priv;
@@ -345,7 +331,8 @@ backup_upload_run (void *cls,
                          bus->sync_url,
                          &bus->sync_priv,
                          ( ( (NULL != bus->prev_upload) &&
-                             (0 != GNUNET_is_zero (&bus->prev_hash)) ) ||
+                             (GNUNET_YES != GNUNET_is_zero (
+                                &bus->prev_hash)) ) ||
                            (0 != (SYNC_TESTING_UO_PREV_HASH_WRONG
                                   & bus->uopt)) )
                          ? &bus->prev_hash
@@ -407,11 +394,24 @@ backup_upload_traits (void *cls,
                       unsigned int index)
 {
   struct BackupUploadState *bus = cls;
-  struct TALER_TESTING_Trait traits[] = {
+  struct TALER_TESTING_Trait straits[] = {
     SYNC_TESTING_make_trait_hash (SYNC_TESTING_TRAIT_HASH_CURRENT,
                                   &bus->curr_hash),
     SYNC_TESTING_make_trait_hash (SYNC_TESTING_TRAIT_HASH_PREVIOUS,
                                   &bus->prev_hash),
+    TALER_TESTING_make_trait_claim_token (0,
+                                          &bus->token),
+    SYNC_TESTING_make_trait_account_pub (0,
+                                         &bus->sync_pub),
+    SYNC_TESTING_make_trait_account_priv (0,
+                                          &bus->sync_priv),
+    TALER_TESTING_make_trait_order_id (0,
+                                       bus->payment_order_id),
+    TALER_TESTING_trait_end ()
+  };
+  struct TALER_TESTING_Trait ftraits[] = {
+    TALER_TESTING_make_trait_claim_token (0,
+                                          &bus->token),
     SYNC_TESTING_make_trait_account_pub (0,
                                          &bus->sync_pub),
     SYNC_TESTING_make_trait_account_priv (0,
@@ -421,7 +421,10 @@ backup_upload_traits (void *cls,
     TALER_TESTING_trait_end ()
   };
 
-  return TALER_TESTING_get_trait (traits,
+
+  return TALER_TESTING_get_trait ((NULL != bus->payment_order_req)
+                                  ? ftraits
+                                  : straits,
                                   ret,
                                   trait,
                                   index);

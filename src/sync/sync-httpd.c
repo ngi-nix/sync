@@ -171,7 +171,6 @@ url_handler (void *cls,
   (void) cls;
   (void) version;
   hc = *con_cls;
-
   if (NULL == hc)
   {
     GNUNET_async_scope_fresh (&aid);

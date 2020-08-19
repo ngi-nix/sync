@@ -54,12 +54,14 @@ static struct SYNC_DatabasePlugin *plugin;
  * @param cls closure
  * @param timestamp for how long have we been waiting
  * @param order_id order id in the backend
+ * @param token claim token, or NULL for none
  * @param amount how much is the order for
  */
 static void
 payment_it (void *cls,
             struct GNUNET_TIME_Absolute timestamp,
             const char *order_id,
+            const struct TALER_ClaimTokenP *token,
             const struct TALER_Amount *amount)
 {
   GNUNET_assert (NULL == cls);
@@ -87,6 +89,7 @@ run (void *cls)
   struct GNUNET_HashCode r;
   struct GNUNET_HashCode r2;
   struct GNUNET_TIME_Absolute ts;
+  struct TALER_ClaimTokenP token;
   size_t bs;
   void *b = NULL;
 
@@ -110,6 +113,7 @@ run (void *cls)
   }
   memset (&account_pub, 1, sizeof (account_pub));
   memset (&account_sig, 2, sizeof (account_sig));
+  memset (&token, 3, sizeof (token));
   GNUNET_CRYPTO_hash ("data", 4, &h);
   GNUNET_CRYPTO_hash ("DATA", 4, &h2);
   GNUNET_CRYPTO_hash ("ATAD", 4, &h3);
@@ -120,6 +124,7 @@ run (void *cls)
           plugin->store_payment_TR (plugin->cls,
                                     &account_pub,
                                     "fake-order",
+                                    &token,
                                     &amount));
   FAILIF (SYNC_DB_ONE_RESULT !=
           plugin->increment_lifetime_TR (plugin->cls,
@@ -200,6 +205,7 @@ run (void *cls)
           plugin->store_payment_TR (plugin->cls,
                                     &account_pub,
                                     "fake-order-2",
+                                    &token,
                                     &amount));
   FAILIF (1 !=
           plugin->lookup_pending_payments_by_account_TR (plugin->cls,
