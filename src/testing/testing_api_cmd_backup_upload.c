@@ -331,7 +331,7 @@ backup_upload_run (void *cls,
                          bus->sync_url,
                          &bus->sync_priv,
                          ( ( (NULL != bus->prev_upload) &&
-                             (GNUNET_YES != GNUNET_is_zero (
+                             (GNUNET_NO == GNUNET_is_zero (
                                 &bus->prev_hash)) ) ||
                            (0 != (SYNC_TESTING_UO_PREV_HASH_WRONG
                                   & bus->uopt)) )
