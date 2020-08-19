@@ -266,6 +266,7 @@ make_payment_request (const char *order_id,
     {
       char tok[256];
 
+      /* This path should not be taken, as we disabled tokens */
       GNUNET_assert (NULL !=
                      GNUNET_STRINGS_data_to_string (token,
                                                     sizeof (*token),
@@ -562,12 +563,18 @@ begin_payment (struct BackupContext *bc,
                      "amount", TALER_JSON_from_amount (&SH_annual_fee),
                      "summary", "annual fee for sync service",
                      "fulfillment_url", SH_fulfillment_url);
-  bc->po = TALER_MERCHANT_orders_post (SH_ctx,
-                                       SH_backend_url,
-                                       order,
-                                       GNUNET_TIME_UNIT_ZERO,
-                                       &proposal_cb,
-                                       bc);
+  bc->po = TALER_MERCHANT_orders_post2 (SH_ctx,
+                                        SH_backend_url,
+                                        order,
+                                        GNUNET_TIME_UNIT_ZERO,
+                                        NULL, /* no payment target */
+                                        0,
+                                        NULL, /* no inventory products */
+                                        0,
+                                        NULL, /* no uuids */
+                                        false, /* do NOT require claim token */
+                                        &proposal_cb,
+                                        bc);
   SH_trigger_curl ();
   json_decref (order);
   return MHD_YES;
