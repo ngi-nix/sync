@@ -50,30 +50,29 @@ SH_backup_get (struct MHD_Connection *connection,
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                       "unexpected return status (backup missing)");
+                                       NULL);
   case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_INTERNAL_INVARIANT_FAILURE,
-                                       "unexpected return status (backup mismatch)");
+                                       NULL);
   case SYNC_DB_PAYMENT_REQUIRED:
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_NOT_FOUND,
                                        TALER_EC_SYNC_ACCOUNT_UNKNOWN,
-                                       "account");
+                                       NULL);
   case SYNC_DB_HARD_ERROR:
-    GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_FETCH_ERROR,
-                                       "hard database failure");
+                                       TALER_EC_SYNC_DB_HARD_FETCH_ERROR,
+                                       NULL);
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_FETCH_ERROR,
-                                       "soft database failure");
+                                       TALER_EC_SYNC_DB_SOFT_FETCH_ERROR,
+                                       NULL);
   case SYNC_DB_NO_RESULTS:
     {
       struct MHD_Response *resp;
@@ -192,14 +191,14 @@ SH_return_backup (struct MHD_Connection *connection,
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_FETCH_ERROR,
-                                       "hard database failure");
+                                       TALER_EC_SYNC_DB_HARD_FETCH_ERROR,
+                                       NULL);
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_FETCH_ERROR,
-                                       "soft database failure");
+                                       TALER_EC_SYNC_DB_SOFT_FETCH_ERROR,
+                                       NULL);
   case SYNC_DB_NO_RESULTS:
     GNUNET_break (0);
     /* Note: can theoretically happen due to non-transactional nature if
@@ -208,8 +207,8 @@ SH_return_backup (struct MHD_Connection *connection,
        expensive. Just admit to failure ;-) */
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_FETCH_ERROR,
-                                       "unexpected empty result set (try again?)");
+                                       TALER_EC_SYNC_DB_INCONSISTENT_FETCH_ERROR,
+                                       NULL);
   case SYNC_DB_ONE_RESULT:
     /* interesting case below */
     break;

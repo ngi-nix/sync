@@ -602,7 +602,7 @@ handle_database_error (struct BackupContext *bc,
     return TALER_MHD_reply_with_error (bc->con,
                                        MHD_HTTP_NOT_FOUND,
                                        TALER_EC_SYNC_PREVIOUS_BACKUP_UNKNOWN,
-                                       "Cannot update, no existing backup known");
+                                       NULL);
   case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Conflict detected, returning existing backup\n");
@@ -637,7 +637,7 @@ handle_database_error (struct BackupContext *bc,
     return TALER_MHD_reply_with_error (bc->con,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
                                        TALER_EC_SYNC_DATABASE_FETCH_ERROR,
-                                       "failed to fetch existing record from database");
+                                       NULL);
   case SYNC_DB_NO_RESULTS:
     GNUNET_assert (0);
     return MHD_NO;
@@ -695,20 +695,21 @@ SH_backup_post (struct MHD_Connection *connection,
                     &len)) )
       {
         GNUNET_break_op (0);
-        return TALER_MHD_reply_with_error (connection,
-                                           MHD_HTTP_BAD_REQUEST,
-                                           TALER_EC_SYNC_BAD_CONTENT_LENGTH,
-                                           (NULL == lens)
-                                           ? "Content-length value missing"
-                                           : "Content-length value malformed");
+        return TALER_MHD_reply_with_error (
+          connection,
+          MHD_HTTP_BAD_REQUEST,
+          (NULL == lens)
+          ? TALER_EC_SYNC_MALFORMED_CONTENT_LENGTH
+          : TALER_EC_SYNC_MISSING_CONTENT_LENGTH,
+          lens);
       }
       if (len / 1024 / 1024 >= SH_upload_limit_mb)
       {
         GNUNET_break_op (0);
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_PAYLOAD_TOO_LARGE,
-                                           TALER_EC_SYNC_BAD_CONTENT_LENGTH,
-                                           "Content-length value not acceptable");
+                                           TALER_EC_SYNC_EXCESSIVE_CONTENT_LENGTH,
+                                           NULL);
       }
       bc->upload = GNUNET_malloc_large (len);
       if (NULL == bc->upload)
@@ -718,7 +719,7 @@ SH_backup_post (struct MHD_Connection *connection,
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_PAYLOAD_TOO_LARGE,
                                            TALER_EC_SYNC_OUT_OF_MEMORY_ON_CONTENT_LENGTH,
-                                           "Server out of memory, try again later");
+                                           NULL);
       }
       bc->upload_size = (size_t) len;
     }
@@ -739,7 +740,7 @@ SH_backup_post (struct MHD_Connection *connection,
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_BAD_REQUEST,
                                            TALER_EC_SYNC_BAD_IF_MATCH,
-                                           "If-Match does not include not a base32-encoded SHA-512 hash");
+                                           NULL);
       }
     }
     {
@@ -759,7 +760,7 @@ SH_backup_post (struct MHD_Connection *connection,
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_BAD_REQUEST,
                                            TALER_EC_SYNC_BAD_SYNC_SIGNATURE,
-                                           "Sync-Signature does not include a base32-encoded EdDSA signature");
+                                           NULL);
       }
     }
     {
@@ -779,7 +780,7 @@ SH_backup_post (struct MHD_Connection *connection,
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_BAD_REQUEST,
                                            TALER_EC_SYNC_BAD_IF_NONE_MATCH,
-                                           "If-none-match does not include not a base32-encoded SHA-512 hash");
+                                           NULL);
       }
     }
     /* validate signature */
@@ -801,7 +802,7 @@ SH_backup_post (struct MHD_Connection *connection,
         return TALER_MHD_reply_with_error (connection,
                                            MHD_HTTP_FORBIDDEN,
                                            TALER_EC_SYNC_INVALID_SIGNATURE,
-                                           "Account signature does not match upload");
+                                           NULL);
       }
     }
     /* get ready to hash (done here as we may go async for payments next) */
@@ -923,7 +924,7 @@ SH_backup_post (struct MHD_Connection *connection,
       return TALER_MHD_reply_with_error (connection,
                                          MHD_HTTP_BAD_REQUEST,
                                          TALER_EC_SYNC_INVALID_UPLOAD,
-                                         "Data uploaded does not match Etag promise");
+                                         NULL);
     }
   }
 
