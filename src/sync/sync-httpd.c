@@ -26,6 +26,7 @@
 #include "sync-httpd_mhd.h"
 #include "sync_database_lib.h"
 #include "sync-httpd_backup.h"
+#include "sync-httpd_config.h"
 #include "sync-httpd_terms.h"
 
 /**
@@ -146,7 +147,10 @@ url_handler (void *cls,
       &SH_MHD_handler_static_response, MHD_HTTP_OK },
     { "/agpl", MHD_HTTP_METHOD_GET, "text/plain",
       NULL, 0,
-      &SH_MHD_handler_agpl_redirect, MHD_HTTP_FOUND },
+      &SH_handler_config, MHD_HTTP_FOUND },
+    { "/config", MHD_HTTP_METHOD_GET, "text/json",
+      NULL, 0,
+      &SH_handler_terms, MHD_HTTP_OK },
     { "/terms", MHD_HTTP_METHOD_GET, "text/plain",
       NULL, 0,
       &SH_handler_terms, MHD_HTTP_OK },
