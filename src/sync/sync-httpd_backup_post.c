@@ -430,29 +430,35 @@ check_payment_cb (void *cls,
   /* refunds are not supported, verify */
   bc->omgh = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Payment status checked: %s\n",
-              osr->paid ? "paid" : "unpaid");
+              "Payment status checked: %d\n",
+              osr->status);
   GNUNET_CONTAINER_DLL_remove (bc_head,
                                bc_tail,
                                bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
-  if (osr->paid)
+  switch (osr->status)
   {
-    enum SYNC_DB_QueryStatus qs;
+  case TALER_MERCHANT_OSC_PAID:
+    {
+      enum SYNC_DB_QueryStatus qs;
 
-    qs = db->increment_lifetime_TR (db->cls,
-                                    &bc->account,
-                                    bc->order_id,
-                                    GNUNET_TIME_UNIT_YEARS); /* always annual */
-    if (0 <= qs)
+      qs = db->increment_lifetime_TR (db->cls,
+                                      &bc->account,
+                                      bc->order_id,
+                                      GNUNET_TIME_UNIT_YEARS); /* always annual */
+      if (0 <= qs)
+        return; /* continue as planned */
+      GNUNET_break (0);
+      bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
+                                       "Failed to persist payment confirmation in sync database");
+      GNUNET_assert (NULL != bc->resp);
+      bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
       return; /* continue as planned */
-    GNUNET_break (0);
-    bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
-                                     "Failed to persist payment confirmation in sync database");
-    GNUNET_assert (NULL != bc->resp);
-    bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-    return; /* continue as planned */
+    }
+  case TALER_MERCHANT_OSC_UNPAID:
+  case TALER_MERCHANT_OSC_CLAIMED:
+    break;
   }
   if (NULL != bc->existing_order_id)
   {
