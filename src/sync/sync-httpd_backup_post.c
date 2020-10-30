@@ -100,7 +100,7 @@ struct BackupContext
   /**
    * Used while we are awaiting proposal creation.
    */
-  struct TALER_MERCHANT_PostOrdersOperation *po;
+  struct TALER_MERCHANT_PostOrdersHandle *po;
 
   /**
    * Used while we are waiting payment.
