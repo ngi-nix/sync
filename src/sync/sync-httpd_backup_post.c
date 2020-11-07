@@ -31,7 +31,7 @@
  * How long do we hold an HTTP client connection if
  * we are awaiting payment before giving up?
  */
-#define CHECK_PAYMENT_TIMEOUT GNUNET_TIME_relative_multiply ( \
+#define CHECK_PAYMENT_GENERIC_TIMEOUT GNUNET_TIME_relative_multiply ( \
     GNUNET_TIME_UNIT_MINUTES, 30)
 
 
@@ -358,7 +358,7 @@ proposal_cb (void *cls,
   if (0 >= qs)
   {
     GNUNET_break (0);
-    bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CREATE_DB_ERROR,
+    bc->resp = TALER_MHD_make_error (TALER_EC_GENERIC_DB_STORE_FAILED,
                                      "Failed to persist payment request in sync database");
     GNUNET_assert (NULL != bc->resp);
     bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
@@ -446,8 +446,8 @@ check_payment_cb (void *cls,
       if (0 <= qs)
         return; /* continue as planned */
       GNUNET_break (0);
-      bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CONFIRM_DB_ERROR,
-                                       "Failed to persist payment confirmation in sync database");
+      bc->resp = TALER_MHD_make_error (TALER_EC_GENERIC_DB_STORE_FAILED,
+                                       "increment lifetime");
       GNUNET_assert (NULL != bc->resp);
       bc->response_code = MHD_HTTP_INTERNAL_SERVER_ERROR;
       return; /* continue as planned */
@@ -471,7 +471,7 @@ check_payment_cb (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Timeout waiting for payment\n");
-  bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_TIMEOUT,
+  bc->resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_GENERIC_TIMEOUT,
                                    "Timeout awaiting promised payment");
   GNUNET_assert (NULL != bc->resp);
   bc->response_code = MHD_HTTP_REQUEST_TIMEOUT;
@@ -535,8 +535,8 @@ begin_payment (struct BackupContext *bc,
     struct MHD_Response *resp;
     MHD_RESULT ret;
 
-    resp = TALER_MHD_make_error (TALER_EC_SYNC_PAYMENT_CHECK_ORDER_DB_ERROR,
-                                 "Failed to check for existing orders in sync database");
+    resp = TALER_MHD_make_error (TALER_EC_GENERIC_DB_FETCH_FAILED,
+                                 "pending payments");
     ret = MHD_queue_response (bc->con,
                               MHD_HTTP_INTERNAL_SERVER_ERROR,
                               resp);
@@ -629,16 +629,21 @@ handle_database_error (struct BackupContext *bc,
                   "Payment required, awaiting completion of `%s'\n",
                   order_id);
       await_payment (bc,
-                     CHECK_PAYMENT_TIMEOUT,
+                     CHECK_PAYMENT_GENERIC_TIMEOUT,
                      order_id);
     }
     return MHD_YES;
   case SYNC_DB_HARD_ERROR:
+    GNUNET_break (0);
+    return TALER_MHD_reply_with_error (bc->con,
+                                       MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                       TALER_EC_GENERIC_DB_COMMIT_FAILED,
+                                       NULL);
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (bc->con,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DATABASE_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_SOFT_FAILURE,
                                        NULL);
   case SYNC_DB_NO_RESULTS:
     GNUNET_assert (0);

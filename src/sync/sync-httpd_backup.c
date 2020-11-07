@@ -49,13 +49,13 @@ SH_backup_get (struct MHD_Connection *connection,
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       TALER_EC_GENERIC_INTERNAL_INVARIANT_FAILURE,
                                        NULL);
   case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       TALER_EC_GENERIC_INTERNAL_INVARIANT_FAILURE,
                                        NULL);
   case SYNC_DB_PAYMENT_REQUIRED:
     return TALER_MHD_reply_with_error (connection,
@@ -65,13 +65,13 @@ SH_backup_get (struct MHD_Connection *connection,
   case SYNC_DB_HARD_ERROR:
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_HARD_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_FETCH_FAILED,
                                        NULL);
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_SOFT_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_SOFT_FAILURE,
                                        NULL);
   case SYNC_DB_NO_RESULTS:
     {
@@ -173,31 +173,31 @@ SH_return_backup (struct MHD_Connection *connection,
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       TALER_EC_GENERIC_INTERNAL_INVARIANT_FAILURE,
                                        "unexpected return status (backup missing)");
   case SYNC_DB_OLD_BACKUP_MISMATCH:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       TALER_EC_GENERIC_INTERNAL_INVARIANT_FAILURE,
                                        "unexpected return status (backup mismatch)");
   case SYNC_DB_PAYMENT_REQUIRED:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_INTERNAL_INVARIANT_FAILURE,
+                                       TALER_EC_GENERIC_INTERNAL_INVARIANT_FAILURE,
                                        "unexpected return status (payment required)");
   case SYNC_DB_HARD_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_HARD_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_FETCH_FAILED,
                                        NULL);
   case SYNC_DB_SOFT_ERROR:
     GNUNET_break (0);
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_SOFT_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_SOFT_FAILURE,
                                        NULL);
   case SYNC_DB_NO_RESULTS:
     GNUNET_break (0);
@@ -207,7 +207,7 @@ SH_return_backup (struct MHD_Connection *connection,
        expensive. Just admit to failure ;-) */
     return TALER_MHD_reply_with_error (connection,
                                        MHD_HTTP_INTERNAL_SERVER_ERROR,
-                                       TALER_EC_SYNC_DB_INCONSISTENT_FETCH_ERROR,
+                                       TALER_EC_GENERIC_DB_INVARIANT_FAILURE,
                                        NULL);
   case SYNC_DB_ONE_RESULT:
     /* interesting case below */
