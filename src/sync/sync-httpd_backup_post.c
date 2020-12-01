@@ -331,18 +331,18 @@ proposal_cb (void *cls,
                 por->hr.http_status,
                 (unsigned int) por->hr.ec);
     GNUNET_break (0);
-    bc->resp = TALER_MHD_make_json_pack ("{s:I, s:s, s:I, s:I, s:O}",
-                                         "code",
-                                         (json_int_t)
-                                         TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR,
-                                         "hint",
-                                         "Failed to setup order with merchant backend",
-                                         "backend-ec",
-                                         (json_int_t) por->hr.ec,
-                                         "backend-http-status",
-                                         (json_int_t) por->hr.http_status,
-                                         "backend-reply",
-                                         por->hr.reply);
+    bc->resp = TALER_MHD_make_json_pack (
+      "{s:I, s:s, s:I, s:I, s:O?}",
+      "code",
+      (json_int_t) TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR,
+      "hint",
+      "Failed to setup order with merchant backend",
+      "backend-ec",
+      (json_int_t) por->hr.ec,
+      "backend-http-status",
+      (json_int_t) por->hr.http_status,
+      "backend-reply",
+      por->hr.reply);
     GNUNET_assert (NULL != bc->resp);
     bc->response_code = MHD_HTTP_FAILED_DEPENDENCY;
     return;
