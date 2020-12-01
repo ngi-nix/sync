@@ -156,11 +156,6 @@ url_handler (void *cls,
       &SH_handler_terms, MHD_HTTP_OK },
     {NULL, NULL, NULL, NULL, 0, 0 }
   };
-  static struct SH_RequestHandler h400 = {
-    "", NULL, "text/plain",
-    "Invalid account key", 0,
-    &SH_MHD_handler_static_response, MHD_HTTP_BAD_REQUEST
-  };
   static struct SH_RequestHandler h404 = {
     "", NULL, "text/html",
     "<html><title>404: not found</title></html>", 0,
@@ -219,11 +214,11 @@ url_handler (void *cls,
                                                     strlen (ac),
                                                     &account_pub.eddsa_pub))
     {
-      return SH_MHD_handler_static_response (&h400,
-                                             connection,
-                                             con_cls,
-                                             upload_data,
-                                             upload_data_size);
+      GNUNET_break_op (0);
+      return TALER_MHD_reply_with_error (connection,
+                                         MHD_HTTP_BAD_REQUEST,
+                                         TALER_EC_GENERIC_PARAMETER_MALFORMED,
+                                         ac);
     }
     if (0 == strcasecmp (method,
                          MHD_HTTP_METHOD_OPTIONS))
