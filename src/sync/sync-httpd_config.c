@@ -23,6 +23,14 @@
 #include <taler/taler_json_lib.h>
 
 
+/*
+ * Protocol version history:
+ *
+ * 0: original design
+ * 1: adds ?fresh=y to POST backup operation to force fresh contract
+ *    to be created
+ */
+
 /**
  * Manages a /config call.
  *
@@ -47,7 +55,7 @@ SH_handler_config (struct SH_RequestHandler *rh,
                                     "name",
                                     "sync",
                                     "version",
-                                    "0:0:0");
+                                    "1:0:1");
 }
 
 
