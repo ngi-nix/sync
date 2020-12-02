@@ -208,6 +208,28 @@ typedef void
  */
 struct SYNC_UploadOperation;
 
+/**
+ * Options for payment.
+ */
+enum SYNC_PaymentOptions
+{
+  /**
+   * No special options.
+   */
+  SYNC_PO_NONE = 0,
+
+  /**
+   * Trigger payment even if sync does not require it
+   * yet (forced payment).
+   */
+  SYNC_PO_FORCE_PAYMENT = 1,
+
+  /**
+   * Request a fresh order to be created, say because the
+   * existing one was claimed (but not paid) by another wallet.
+   */
+  SYNC_PO_FRESH_ORDER = 2
+};
 
 /**
  * Upload a @a backup to a Sync server. Note that @a backup must
@@ -235,7 +257,7 @@ struct SYNC_UploadOperation;
  * @param backup the encrypted backup, must remain in
  *         memory until we are done with the operation!
  * @param payment_requested #GNUNET_YES if the client wants to pay more for the account now
- * @param paid_order_id order ID of a recent payment made, or NULL for none
+ * @param po payment options
  * @param cb function to call with the result
  * @param cb_cls closure for @a cb
  * @return handle for the operation
@@ -247,7 +269,7 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
              const struct GNUNET_HashCode *prev_backup_hash,
              size_t backup_size,
              const void *backup,
-             int payment_requested,
+             enum SYNC_PaymentOptions po,
              const char *paid_order_id,
              SYNC_UploadCallback cb,
              void *cb_cls);

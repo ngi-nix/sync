@@ -240,35 +240,6 @@ handle_header (char *buffer,
 }
 
 
-/**
- * Upload a @a backup to a Sync server. Note that @a backup must
- * have already been compressed, padded and encrypted by the
- * client.
- *
- * While @a pub is theoretically protected by the HTTPS protocol and
- * required to access the backup, it should be assumed that an
- * adversary might be able to download the backups from the Sync
- * server -- or even run the Sync server. Thus, strong encryption
- * is essential and NOT implemented by this function.
- *
- * The use of Anastasis to safely store the Sync encryption keys and
- * @a pub is recommended.  Storing @a priv in Anastasis depends on
- * your priorities: without @a priv, further updates to the backup are
- * not possible, and the user would have to pay for another
- * account. OTOH, without @a priv an adversary that compromised
- * Anastasis can only read the backups, but not alter or destroy them.
- *
- * @param ctx for HTTP client request processing
- * @param base_url base URL of the Sync server
- * @param priv private key of an account with the server
- * @param prev_backup_hash hash of the previous backup, NULL for the first upload ever
- * @param backup_size number of bytes in @a backup
- * @param payment_requested #GNUNET_YES if the client wants to pay more for the account now
- * @param paid_order_id order ID of a recent payment made, or NULL for none
- * @param cb function to call with the result
- * @param cb_cls closure for @a cb
- * @return handle for the operation
- */
 struct SYNC_UploadOperation *
 SYNC_upload (struct GNUNET_CURL_Context *ctx,
              const char *base_url,
@@ -276,7 +247,7 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
              const struct GNUNET_HashCode *prev_backup_hash,
              size_t backup_size,
              const void *backup,
-             int payment_requested,
+             enum SYNC_PaymentOptions po,
              const char *paid_order_id,
              SYNC_UploadCallback cb,
              void *cb_cls)
@@ -382,16 +353,42 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
                      "backups/%s",
                      account_s);
     GNUNET_free (account_s);
-    uo->url = (GNUNET_YES == payment_requested)
-              ? TALER_url_join (base_url,
+    if  (0 != (po & SYNC_PO_FRESH_ORDER))
+    {
+      uo->url = (0 != (po & SYNC_PO_FORCE_PAYMENT))
+      ? TALER_url_join (base_url,
+                        path,
+                        "fresh",
+                        "y",
+                        "pay",
+                        "y",
+                        (NULL != paid_order_id)
+                                ? "paying"
+                                : NULL,
+                        paid_order_id,
+                        NULL)
+              : TALER_url_join (base_url,
                                 path,
-                                "pay",
+                                "fresh",
                                 "y",
                                 (NULL != paid_order_id)
                                 ? "paying"
                                 : NULL,
                                 paid_order_id,
-                                NULL)
+                                NULL);
+    }
+    else
+    {
+      uo->url = (0 != (po & SYNC_PO_FORCE_PAYMENT))
+      ? TALER_url_join (base_url,
+                        path,
+                        "pay",
+                        "y",
+                        (NULL != paid_order_id)
+                                ? "paying"
+                                : NULL,
+                        paid_order_id,
+                        NULL)
               : TALER_url_join (base_url,
                                 path,
                                 (NULL != paid_order_id)
@@ -399,6 +396,8 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
                                 : NULL,
                                 paid_order_id,
                                 NULL);
+    }
+
     GNUNET_free (path);
   }
   uo->ctx = ctx;

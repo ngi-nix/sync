@@ -684,8 +684,7 @@ SH_backup_post (struct MHD_Connection *connection,
       fresh = MHD_lookup_connection_value (connection,
                                            MHD_GET_ARGUMENT_KIND,
                                            "fresh");
-      if (0 == strcasecmp (fresh,
-                           "yes"))
+      if (NULL != fresh)
         bc->force_fresh_order = true;
     }
     *con_cls = bc;

@@ -339,7 +339,9 @@ backup_upload_run (void *cls,
                          : NULL,
                          bus->backup_size,
                          bus->backup,
-                         (0 != (SYNC_TESTING_UO_REQUEST_PAYMENT & bus->uopt)),
+                         (0 != (SYNC_TESTING_UO_REQUEST_PAYMENT & bus->uopt))
+                         ? SYNC_PO_FORCE_PAYMENT
+                         : SYNC_PO_NONE,
                          bus->payment_order_req,
                          &backup_upload_cb,
                          bus);
