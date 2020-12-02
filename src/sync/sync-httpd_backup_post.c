@@ -144,6 +144,10 @@ struct BackupContext
    */
   unsigned int response_code;
 
+  /**
+   * Do not look for an existing order, force a fresh order to be created.
+   */
+  bool force_fresh_order;
 };
 
 
@@ -509,35 +513,39 @@ begin_payment (struct BackupContext *bc,
                int pay_req)
 {
   json_t *order;
-  enum GNUNET_DB_QueryStatus qs;
 
-  qs = db->lookup_pending_payments_by_account_TR (db->cls,
-                                                  &bc->account,
-                                                  &ongoing_payment_cb,
-                                                  bc);
-  if (qs < 0)
+  if (! bc->force_fresh_order)
   {
-    struct MHD_Response *resp;
-    MHD_RESULT ret;
+    enum GNUNET_DB_QueryStatus qs;
 
-    resp = TALER_MHD_make_error (TALER_EC_GENERIC_DB_FETCH_FAILED,
-                                 "pending payments");
-    ret = MHD_queue_response (bc->con,
-                              MHD_HTTP_INTERNAL_SERVER_ERROR,
-                              resp);
-    GNUNET_break (MHD_YES == ret);
-    MHD_destroy_response (resp);
-    return ret;
-  }
-  if (NULL != bc->existing_order_id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Have existing order, waiting for `%s' to complete\n",
-                bc->existing_order_id);
-    await_payment (bc,
-                   GNUNET_TIME_UNIT_ZERO /* no long polling */,
-                   bc->existing_order_id);
-    return MHD_YES;
+    qs = db->lookup_pending_payments_by_account_TR (db->cls,
+                                                    &bc->account,
+                                                    &ongoing_payment_cb,
+                                                    bc);
+    if (qs < 0)
+    {
+      struct MHD_Response *resp;
+      MHD_RESULT ret;
+
+      resp = TALER_MHD_make_error (TALER_EC_GENERIC_DB_FETCH_FAILED,
+                                   "pending payments");
+      ret = MHD_queue_response (bc->con,
+                                MHD_HTTP_INTERNAL_SERVER_ERROR,
+                                resp);
+      GNUNET_break (MHD_YES == ret);
+      MHD_destroy_response (resp);
+      return ret;
+    }
+    if (NULL != bc->existing_order_id)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Have existing order, waiting for `%s' to complete\n",
+                  bc->existing_order_id);
+      await_payment (bc,
+                     GNUNET_TIME_UNIT_ZERO /* no long polling */,
+                     bc->existing_order_id);
+      return MHD_YES;
+    }
   }
   GNUNET_CONTAINER_DLL_insert (bc_head,
                                bc_tail,
@@ -670,6 +678,16 @@ SH_backup_post (struct MHD_Connection *connection,
     bc->hc.cc = &cleanup_ctx;
     bc->con = connection;
     bc->account = *account;
+    {
+      const char *fresh;
+
+      fresh = MHD_lookup_connection_value (connection,
+                                           MHD_GET_ARGUMENT_KIND,
+                                           "fresh");
+      if (0 == strcasecmp (fresh,
+                           "yes"))
+        bc->force_fresh_order = true;
+    }
     *con_cls = bc;
 
     /* now setup 'bc' */
