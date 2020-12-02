@@ -235,6 +235,7 @@ make_payment_request (const char *order_id,
     char *hdr;
     char *pfx;
     char *hn;
+    struct GNUNET_Buffer hdr_buf = { 0 };
 
     if (0 == strncasecmp ("https://",
                           SH_backend_url,
@@ -262,35 +263,19 @@ make_payment_request (const char *order_id,
       MHD_destroy_response (resp);
       return NULL;
     }
-    // FIXME: support instances?
+
+    GNUNET_buffer_write_str (&hdr_buf, pfx);
+    GNUNET_buffer_write_str (&hdr_buf, "pay/");
+    GNUNET_buffer_write_str (&hdr_buf, hn);
+    GNUNET_buffer_write_path (&hdr_buf, order_id);
+    /* No session ID */
+    GNUNET_buffer_write_path (&hdr_buf, "");
     if (NULL != token)
     {
-      char tok[256];
-
-      /* This path should not be taken, as we disabled tokens */
-      GNUNET_assert (NULL !=
-                     GNUNET_STRINGS_data_to_string (token,
-                                                    sizeof (*token),
-                                                    tok,
-                                                    sizeof (tok)));
-      GNUNET_asprintf (&hdr,
-                       "%spay/%s%s%s/?c=%s",
-                       pfx,
-                       hn,
-                       ('/' == hn[strlen (hn) - 1])
-                       ? ""
-                       : "/",
-                       order_id,
-                       tok);
+      GNUNET_buffer_write_str (&hdr_buf, "?c=");
+      GNUNET_buffer_write_data_encoded (&hdr_buf, token, sizeof (*token));
     }
-    else
-    {
-      GNUNET_asprintf (&hdr,
-                       "%spay/%s/%s/",
-                       pfx,
-                       hn,
-                       order_id);
-    }
+    hdr = GNUNET_buffer_reap_str (&hdr_buf);
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (resp,
                                            "Taler",
