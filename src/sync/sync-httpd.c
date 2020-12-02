@@ -90,6 +90,37 @@ static struct MHD_Daemon *mhd;
  */
 struct SYNC_DatabasePlugin *db;
 
+/**
+ * Username and password to use for client authentication
+ * (optional).
+ */
+static char *userpass;
+
+/**
+ * Type of the client's TLS certificate (optional).
+ */
+static char *certtype;
+
+/**
+ * File with the client's TLS certificate (optional).
+ */
+static char *certfile;
+
+/**
+ * File with the client's TLS private key (optional).
+ */
+static char *keyfile;
+
+/**
+ * This value goes in the Authorization:-header.
+ */
+static char *apikey;
+
+/**
+ * Passphrase to decrypt client's TLS private key file (optional).
+ */
+static char *keypass;
+
 
 /**
  * A client has requested the given url using the given method
@@ -569,7 +600,33 @@ run (void *cls,
   SH_ctx = GNUNET_CURL_init (&GNUNET_CURL_gnunet_scheduler_reschedule,
                              &rc);
   rc = GNUNET_CURL_gnunet_rc_create (SH_ctx);
+  if (NULL != userpass)
+    GNUNET_CURL_set_userpass (SH_ctx,
+                              userpass);
+  if (NULL != keyfile)
+    GNUNET_CURL_set_tlscert (SH_ctx,
+                             certtype,
+                             certfile,
+                             keyfile,
+                             keypass);
+  if (NULL != apikey)
+  {
+    char *auth_header;
 
+    GNUNET_asprintf (&auth_header,
+                     "%s: %s",
+                     MHD_HTTP_HEADER_AUTHORIZATION,
+                     apikey);
+    if (GNUNET_OK !=
+        GNUNET_CURL_append_header (SH_ctx,
+                                   auth_header))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed so set %s header, trying without\n",
+                  MHD_HTTP_HEADER_AUTHORIZATION);
+    }
+    GNUNET_free (auth_header);
+  }
 
   if (NULL ==
       (db = SYNC_DB_plugin_load (config)))
@@ -621,10 +678,35 @@ main (int argc,
       char *const *argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_option_string ('A',
+                                 "auth",
+                                 "USERNAME:PASSWORD",
+                                 "use the given USERNAME and PASSWORD for client authentication",
+                                 &userpass),
     GNUNET_GETOPT_option_flag ('C',
                                "connection-close",
                                "force HTTP connections to be closed after each request",
                                &SH_sync_connection_close),
+    GNUNET_GETOPT_option_string ('k',
+                                 "key",
+                                 "KEYFILE",
+                                 "file with the private TLS key for TLS client authentication",
+                                 &keyfile),
+    GNUNET_GETOPT_option_string ('p',
+                                 "pass",
+                                 "KEYFILEPASSPHRASE",
+                                 "passphrase needed to decrypt the TLS client private key file",
+                                 &keypass),
+    GNUNET_GETOPT_option_string ('K',
+                                 "apikey",
+                                 "APIKEY",
+                                 "API key to use in the HTTP request",
+                                 &apikey),
+    GNUNET_GETOPT_option_string ('t',
+                                 "type",
+                                 "CERTTYPE",
+                                 "type of the TLS client certificate, defaults to PEM if not specified",
+                                 &certtype),
     GNUNET_GETOPT_OPTION_END
   };
 
