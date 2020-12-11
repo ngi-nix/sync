@@ -152,6 +152,19 @@ run (void *cls,
      struct TALER_TESTING_Interpreter *is)
 {
   struct TALER_TESTING_Command commands[] = {
+    /* general setup */
+    TALER_TESTING_cmd_auditor_add ("add-auditor-OK",
+                                   MHD_HTTP_NO_CONTENT,
+                                   false),
+    TALER_TESTING_cmd_wire_add ("add-wire-account",
+                                "payto://x-taler-bank/localhost/2",
+                                MHD_HTTP_NO_CONTENT,
+                                false),
+    TALER_TESTING_cmd_exec_offline_sign_keys ("offline-sign-future-keys",
+                                              CONFIG_FILE),
+    TALER_TESTING_cmd_check_keys_pull_all_keys ("refetch /keys",
+                                                1,
+                                                20 /* FIXME: wrong number... */),
     TALER_TESTING_cmd_merchant_post_instances ("instance-create-default",
                                                merchant_url,
                                                "default",

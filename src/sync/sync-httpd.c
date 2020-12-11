@@ -325,8 +325,7 @@ url_handler (void *cls,
 
 
 /**
- * Shutdown task (magically invoked when the application is being
- * quit)
+ * Shutdown task. Invoked when the application is being terminated.
  *
  * @param cls NULL
  */

@@ -1,3 +1,8 @@
 test_sync_api
 auditor.in
 test_sync_api_home/.local/share/taler/exchange/live-keys/
+test_sync_api_home/.local/share/taler/crypto-eddsa/
+test_sync_api_home/.local/share/taler/crypto-rsa/
+test_sync_api_home/.local/share/taler/exchange/offline-keys/secm_tofus.priv
+test_sync_api_home/.local/share/taler/taler-helper-crypto-eddsa/
+test_sync_api_home/.local/share/taler/taler-helper-crypto-rsa/
