@@ -319,7 +319,7 @@ proposal_cb (void *cls,
                 "Backend returned status %u/%u\n",
                 por->hr.http_status,
                 (unsigned int) por->hr.ec);
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     bc->resp = TALER_MHD_make_json_pack (
       "{s:I, s:s, s:I, s:I, s:O?}",
       "code",
@@ -333,7 +333,7 @@ proposal_cb (void *cls,
       "backend-reply",
       por->hr.reply);
     GNUNET_assert (NULL != bc->resp);
-    bc->response_code = MHD_HTTP_FAILED_DEPENDENCY;
+    bc->response_code = MHD_HTTP_BAD_GATEWAY;
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
