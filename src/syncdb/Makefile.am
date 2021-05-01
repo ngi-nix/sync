@@ -25,7 +25,8 @@ sync_dbinit_LDADD = \
   $(top_builddir)/src/util/libsyncutil.la \
   libsyncdb.la \
   -ltalerutil \
-  -lgnunetutil
+  -lgnunetutil \
+  $(XLIB)
 
 lib_LTLIBRARIES = \
   libsyncdb.la
@@ -35,7 +36,8 @@ libsyncdb_la_LIBADD = \
   $(top_builddir)/src/util/libsyncutil.la \
   -lgnunetpq \
   -lpq \
-  -lgnunetutil
+  -lgnunetutil \
+  $(XLIB)
 libsyncdb_la_LDFLAGS = \
    $(POSTGRESQL_LDFLAGS) \
    -version-info 0:0:0 \
@@ -50,7 +52,8 @@ libsync_plugin_db_postgres_la_LDFLAGS = \
   -lgnunetpq \
   -lpq \
   -ltalerpq \
-  -lgnunetutil $(XLIB)
+  -lgnunetutil \
+  $(XLIB)
 
 check_PROGRAMS = \
  $(TESTS)
@@ -62,7 +65,8 @@ test_sync_db_postgres_LDFLAGS = \
   libsyncdb.la \
   -lgnunetutil \
   -lgnunetpq \
-  -ltalerutil
+  -ltalerutil \
+  $(XLIB)
 
 TESTS = \
   test_sync_db-postgres

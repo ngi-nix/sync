@@ -58,4 +58,5 @@ test_sync_api_LDADD = \
   -lgnunetjson \
   -lgnunetcurl \
   -lgnunetutil \
-  -ljansson
+  -ljansson \
+  $(XLIB)
