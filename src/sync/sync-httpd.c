@@ -621,7 +621,7 @@ run (void *cls,
                                    auth_header))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Failed so set %s header, trying without\n",
+                  "Failed to set %s header, trying without\n",
                   MHD_HTTP_HEADER_AUTHORIZATION);
     }
     GNUNET_free (auth_header);
