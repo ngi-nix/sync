@@ -608,7 +608,13 @@ run (void *cls,
                              certfile,
                              keyfile,
                              keypass);
-  if (NULL != apikey)
+
+  // Case where APIKEY is needed.
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (config,
+                                             "sync",
+                                             "APIKEY",
+                                             &apikey))
   {
     char *auth_header;
 
@@ -696,11 +702,6 @@ main (int argc,
                                  "KEYFILEPASSPHRASE",
                                  "passphrase needed to decrypt the TLS client private key file",
                                  &keypass),
-    GNUNET_GETOPT_option_string ('K',
-                                 "apikey",
-                                 "APIKEY",
-                                 "API key to use in the HTTP request",
-                                 &apikey),
     GNUNET_GETOPT_option_string ('t',
                                  "type",
                                  "CERTTYPE",
