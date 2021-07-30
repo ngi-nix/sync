@@ -196,7 +196,7 @@ static enum GNUNET_DB_QueryStatus
 commit_transaction (void *cls)
 {
   struct PostgresClosure *pg = cls;
-  enum SYNC_DB_QueryStatus qs;
+  enum GNUNET_DB_QueryStatus qs;
   struct GNUNET_PQ_QueryParam no_params[] = {
     GNUNET_PQ_query_param_end
   };
@@ -222,7 +222,7 @@ commit_transaction (void *cls)
  *            this value should be garbage collected
  * @return transaction status
  */
-static enum SYNC_DB_QueryStatus
+static enum GNUNET_DB_QueryStatus
 postgres_gc (void *cls,
              struct GNUNET_TIME_Absolute expire_backups,
              struct GNUNET_TIME_Absolute expire_pending_payments)
@@ -236,7 +236,7 @@ postgres_gc (void *cls,
     TALER_PQ_query_param_absolute_time (&expire_pending_payments),
     GNUNET_PQ_query_param_end
   };
-  enum SYNC_DB_QueryStatus qs;
+  enum GNUNET_DB_QueryStatus qs;
 
   check_connection (pg);
   postgres_preflight (pg);
@@ -574,7 +574,7 @@ postgres_store_backup (void *cls,
     /* previous conflicting backup exists */
     return SYNC_DB_OLD_BACKUP_MISMATCH;
   /* backup identical to what was provided, no change */
-  return GNUNET_DB_STATUS_SUCCESS_NO_RESULTS;
+  return SYNC_DB_NO_RESULTS;
 }
 
 
@@ -719,7 +719,7 @@ postgres_update_backup (void *cls,
                           old_backup_hash))
     /* all constraints seem satisfied, original error must
        have been a hard error */
-    return GNUNET_DB_STATUS_HARD_ERROR;
+    return SYNC_DB_HARD_ERROR;
   /* previous backup does not match old_backup_hash */
   return SYNC_DB_OLD_BACKUP_MISMATCH;
 }
@@ -897,7 +897,7 @@ postgres_increment_lifetime (void *cls,
                          "increment lifetime"))
   {
     GNUNET_break (0);
-    return GNUNET_DB_STATUS_HARD_ERROR;
+    return SYNC_DB_HARD_ERROR;
   }
 
   {
@@ -910,11 +910,21 @@ postgres_increment_lifetime (void *cls,
     qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
                                              "payment_done",
                                              params);
-    if (0 >= qs)
+    switch (qs)
     {
-      /* payment made before, or unknown, or error => no further action! */
+    case GNUNET_DB_STATUS_HARD_ERROR:
+      GNUNET_break (0);
       rollback (pg);
-      return qs;
+      return SYNC_DB_HARD_ERROR;
+    case GNUNET_DB_STATUS_SOFT_ERROR:
+      GNUNET_break (0);
+      rollback (pg);
+      return SYNC_DB_SOFT_ERROR;
+    case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
+      rollback (pg);
+      return SYNC_DB_NO_RESULTS;
+    case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
+      break;
     }
   }
 

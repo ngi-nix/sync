@@ -132,7 +132,7 @@ struct SYNC_DatabasePlugin
    *            this value should be garbage collected
    * @return transaction status
    */
-  enum SYNC_DB_QueryStatus
+  enum GNUNET_DB_QueryStatus
   (*gc)(void *cls,
         struct GNUNET_TIME_Absolute expire,
         struct GNUNET_TIME_Absolute expire_pending_payments);

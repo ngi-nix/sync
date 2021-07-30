@@ -294,7 +294,7 @@ SYNC_download (struct GNUNET_CURL_Context *ctx,
   download->cb_cls = cb_cls;
   download->job = GNUNET_CURL_job_add_raw (ctx,
                                            eh,
-                                           GNUNET_NO,
+                                           NULL,
                                            &handle_download_finished,
                                            download);
   return download;
