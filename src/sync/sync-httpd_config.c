@@ -49,13 +49,13 @@ SH_handler_config (struct SH_RequestHandler *rh,
                    const char *upload_data,
                    size_t *upload_data_size)
 {
-  return TALER_MHD_reply_json_pack (connection,
-                                    MHD_HTTP_OK,
-                                    "{s:s, s:s}",
-                                    "name",
-                                    "sync",
-                                    "version",
-                                    "1:0:1");
+  return TALER_MHD_REPLY_JSON_PACK (
+    connection,
+    MHD_HTTP_OK,
+    GNUNET_JSON_pack_string ("name",
+                             "sync"),
+    GNUNET_JSON_pack_string ("version",
+                             "1:0:1"));
 }
 
 

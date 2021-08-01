@@ -320,19 +320,15 @@ proposal_cb (void *cls,
                 por->hr.http_status,
                 (unsigned int) por->hr.ec);
     GNUNET_break_op (0);
-    bc->resp = TALER_MHD_make_json_pack (
-      "{s:I, s:s, s:I, s:I, s:O?}",
-      "code",
-      (json_int_t) TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR,
-      "hint",
-      "Failed to setup order with merchant backend",
-      "backend-ec",
-      (json_int_t) por->hr.ec,
-      "backend-http-status",
-      (json_int_t) por->hr.http_status,
-      "backend-reply",
-      por->hr.reply);
-    GNUNET_assert (NULL != bc->resp);
+    bc->resp = TALER_MHD_MAKE_JSON_PACK (
+      TALER_JSON_pack_ec (TALER_EC_SYNC_PAYMENT_CREATE_BACKEND_ERROR),
+      GNUNET_JSON_pack_uint64 ("backend-ec",
+                               por->hr.ec),
+      GNUNET_JSON_pack_uint64 ("backend-http-status",
+                               por->hr.http_status),
+      GNUNET_JSON_pack_allow_null (
+        GNUNET_JSON_pack_object_incref ("backend-reply",
+                                        (json_t *) por->hr.reply)));
     bc->response_code = MHD_HTTP_BAD_GATEWAY;
     return;
   }
@@ -554,10 +550,13 @@ begin_payment (struct BackupContext *bc,
               "Suspending connection while creating order at `%s'\n",
               SH_backend_url);
   MHD_suspend_connection (bc->con);
-  order = json_pack ("{s:o, s:s, s:s}",
-                     "amount", TALER_JSON_from_amount (&SH_annual_fee),
-                     "summary", "annual fee for sync service",
-                     "fulfillment_url", SH_fulfillment_url);
+  order = GNUNET_JSON_PACK (
+    TALER_JSON_pack_amount ("amount",
+                            &SH_annual_fee),
+    GNUNET_JSON_pack_string ("summary",
+                             "annual fee for sync service"),
+    GNUNET_JSON_pack_string ("fulfillment_url",
+                             SH_fulfillment_url));
   bc->po = TALER_MERCHANT_orders_post2 (SH_ctx,
                                         SH_backend_url,
                                         order,

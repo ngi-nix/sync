@@ -40,13 +40,13 @@ SH_handler_terms (struct SH_RequestHandler *rh,
                   const char *upload_data,
                   size_t *upload_data_size)
 {
-  return TALER_MHD_reply_json_pack (connection,
-                                    MHD_HTTP_OK,
-                                    "{s:I, s:o, s:s}",
-                                    "storage_limit_in_megabytes",
-                                    (json_int_t) SH_upload_limit_mb,
-                                    "annual_fee",
-                                    TALER_JSON_from_amount (&SH_annual_fee),
-                                    "version",
-                                    "0.0");
+  return TALER_MHD_REPLY_JSON_PACK (
+    connection,
+    MHD_HTTP_OK,
+    GNUNET_JSON_pack_uint64 ("storage_limit_in_megabytes",
+                             SH_upload_limit_mb),
+    TALER_JSON_pack_amount ("annual_fee",
+                            &SH_annual_fee),
+    GNUNET_JSON_pack_string ("version",
+                             "0.0"));
 }
