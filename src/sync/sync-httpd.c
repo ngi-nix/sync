@@ -181,10 +181,7 @@ url_handler (void *cls,
       &SH_handler_config, MHD_HTTP_FOUND },
     { "/config", MHD_HTTP_METHOD_GET, "text/json",
       NULL, 0,
-      &SH_handler_terms, MHD_HTTP_OK },
-    { "/terms", MHD_HTTP_METHOD_GET, "text/plain",
-      NULL, 0,
-      &SH_handler_terms, MHD_HTTP_OK },
+      &SH_handler_config, MHD_HTTP_OK },
     {NULL, NULL, NULL, NULL, 0, 0 }
   };
   static struct SH_RequestHandler h404 = {

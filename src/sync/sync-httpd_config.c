@@ -54,6 +54,10 @@ SH_handler_config (struct SH_RequestHandler *rh,
     MHD_HTTP_OK,
     GNUNET_JSON_pack_string ("name",
                              "sync"),
+    GNUNET_JSON_pack_uint64 ("storage_limit_in_megabytes",
+                             SH_upload_limit_mb),
+    TALER_JSON_pack_amount ("annual_fee",
+                            &SH_annual_fee),
     GNUNET_JSON_pack_string ("version",
                              "1:0:1"));
 }

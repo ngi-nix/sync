@@ -43,10 +43,6 @@ SH_handler_terms (struct SH_RequestHandler *rh,
   return TALER_MHD_REPLY_JSON_PACK (
     connection,
     MHD_HTTP_OK,
-    GNUNET_JSON_pack_uint64 ("storage_limit_in_megabytes",
-                             SH_upload_limit_mb),
-    TALER_JSON_pack_amount ("annual_fee",
-                            &SH_annual_fee),
     GNUNET_JSON_pack_string ("version",
                              "0.0"));
 }

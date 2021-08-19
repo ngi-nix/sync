@@ -19,8 +19,7 @@ sync_httpd_SOURCES = \
   sync-httpd_backup.c sync-httpd_backup.h \
   sync-httpd_backup_post.c \
   sync-httpd_config.c sync-httpd_config.h \
-  sync-httpd_mhd.c sync-httpd_mhd.h \
-  sync-httpd_terms.c sync-httpd_terms.h
+  sync-httpd_mhd.c sync-httpd_mhd.h
 sync_httpd_LDADD = \
   $(top_builddir)/src/util/libsyncutil.la \
   $(top_builddir)/src/syncdb/libsyncdb.la \
