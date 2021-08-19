@@ -371,7 +371,4 @@ void
 SYNC_download_cancel (struct SYNC_DownloadOperation *download);
 
 
-/* TODO: API for /terms! */
-
-
 #endif  /* SYNC_SERVICE_H */

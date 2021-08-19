@@ -27,7 +27,6 @@
 #include "sync_database_lib.h"
 #include "sync-httpd_backup.h"
 #include "sync-httpd_config.h"
-#include "sync-httpd_terms.h"
 
 /**
  * Backlog for listen operation on unix-domain sockets.
