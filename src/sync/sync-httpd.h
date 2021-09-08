@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  Copyright (C) 2019 Taler Systems SA
+  Copyright (C) 2019-2021 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -152,6 +152,11 @@ extern char *SH_fulfillment_url;
  * Our context for making HTTP requests.
  */
 extern struct GNUNET_CURL_Context *SH_ctx;
+
+/**
+ * Amount of insurance.
+ */
+extern struct TALER_Amount SH_insurance;
 
 /**
  * Kick MHD to run now, to be called after MHD_resume_connection().

@@ -120,6 +120,11 @@ static char *apikey;
  */
 static char *keypass;
 
+/**
+ * Amount of insurance.
+ */
+struct TALER_Amount SH_insurance;
+
 
 /**
  * A client has requested the given url using the given method
@@ -551,6 +556,18 @@ run (void *cls,
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "sync",
                                "UPLOAD_LIMIT_MB");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      TALER_config_get_amount (config,
+                               "sync",
+                               "INSURANCE",
+                               &SH_insurance))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "sync",
+                               "INSURANCE");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
