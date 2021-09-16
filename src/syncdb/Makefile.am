@@ -44,6 +44,7 @@ libsyncdb_la_LIBADD = \
   -lgnunetpq \
   -lpq \
   -lgnunetutil \
+  -lltdl \
   $(XLIB)
 libsyncdb_la_LDFLAGS = \
    $(POSTGRESQL_LDFLAGS) \

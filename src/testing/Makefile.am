@@ -21,6 +21,7 @@ libsynctesting_la_SOURCES = \
   testing_api_trait_hash.c
 libsynctesting_la_LIBADD = \
   $(top_builddir)/src/lib/libsync.la \
+  -ltalermerchant \
   -ltalerexchange \
   -ltalerjson \
   -ltalerutil \

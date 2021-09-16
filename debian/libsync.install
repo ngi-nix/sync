@@ -1,2 +1,3 @@
+usr/bin/sync-config
 usr/lib/*/libsync.so.*
 usr/lib/*/libsyncutil.so.*

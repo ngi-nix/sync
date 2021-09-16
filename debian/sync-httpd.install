@@ -1,4 +1,5 @@
 usr/bin/
+usr/lib/*/libsyncdb.so.*
 usr/lib/*/sync/libsync_plugin*.*
 usr/share/sync/sql/*
 usr/share/sync/config.d/*
