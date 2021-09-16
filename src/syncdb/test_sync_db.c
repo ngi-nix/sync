@@ -24,6 +24,7 @@
 #include "sync_service.h"
 #include "sync_database_plugin.h"
 #include "sync_database_lib.h"
+#include "sync_util.h"
 
 
 #define FAILIF(cond)                            \
@@ -98,19 +99,20 @@ run (void *cls)
     result = 77;
     return;
   }
-  if (GNUNET_OK != plugin->drop_tables (plugin->cls))
+  if (GNUNET_OK !=
+      plugin->drop_tables (plugin->cls))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Dropping tables failed\n");
-    result = 77;
-    return;
   }
-  SYNC_DB_plugin_unload (plugin);
-  if (NULL == (plugin = SYNC_DB_plugin_load (cfg)))
+  if (GNUNET_OK !=
+      plugin->create_tables (plugin->cls))
   {
-    result = 77;
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Creating tables failed\n");
   }
+  GNUNET_assert (GNUNET_OK ==
+                 plugin->preflight (plugin->cls));
   memset (&account_pub, 1, sizeof (account_pub));
   memset (&account_sig, 2, sizeof (account_sig));
   memset (&token, 3, sizeof (token));
@@ -267,13 +269,15 @@ main (int argc,
   char *testname;
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  result = -1;
+  result = EXIT_FAILURE;
   if (NULL == (plugin_name = strrchr (argv[0], (int) '-')))
   {
     GNUNET_break (0);
-    return -1;
+    return EXIT_FAILURE;
   }
   GNUNET_log_setup (argv[0], "DEBUG", NULL);
+  (void) TALER_project_data_default ();
+  GNUNET_OS_init (SYNC_project_data_default ());
   plugin_name++;
   (void) GNUNET_asprintf (&testname,
                           "%s",
@@ -289,7 +293,7 @@ main (int argc,
     GNUNET_break (0);
     GNUNET_free (config_filename);
     GNUNET_free (testname);
-    return 2;
+    return EXIT_NOTCONFIGURED;
   }
   GNUNET_SCHEDULER_run (&run, cfg);
   GNUNET_CONFIGURATION_destroy (cfg);

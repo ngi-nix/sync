@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  (C) 2014--2019 Taler Systems SA
+  (C) 2014--2021 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
@@ -39,6 +39,11 @@ struct PostgresClosure
   struct GNUNET_PQ_Context *conn;
 
   /**
+   * Directory with SQL statements to run to create tables.
+   */
+  char *sql_dir;
+
+  /**
    * Underlying configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -52,6 +57,13 @@ struct PostgresClosure
    * Currency we accept payments in.
    */
   char *currency;
+
+  /**
+   * Did we initialize the prepared statements
+   * for this session?
+   */
+  bool init;
+
 };
 
 
@@ -61,26 +73,274 @@ struct PostgresClosure
  * @param cls closure our `struct Plugin`
  * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
  */
-static int
+static enum GNUNET_GenericReturnValue
 postgres_drop_tables (void *cls)
 {
   struct PostgresClosure *pg = cls;
+  struct GNUNET_PQ_Context *conn;
+
+  conn = GNUNET_PQ_connect_with_cfg (pg->cfg,
+                                     "syncdb-postgres",
+                                     "drop",
+                                     NULL,
+                                     NULL);
+  if (NULL == conn)
+    return GNUNET_SYSERR;
+  GNUNET_PQ_disconnect (conn);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Establish connection to the database.
+ *
+ * @param cls plugin context
+ * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
+ */
+static enum GNUNET_GenericReturnValue
+prepare_statements (void *cls)
+{
+  struct PostgresClosure *pg = cls;
+  struct GNUNET_PQ_PreparedStatement ps[] = {
+    GNUNET_PQ_make_prepare ("account_insert",
+                            "INSERT INTO accounts "
+                            "(account_pub"
+                            ",expiration_date"
+                            ") VALUES "
+                            "($1,$2);",
+                            2),
+    GNUNET_PQ_make_prepare ("payment_insert",
+                            "INSERT INTO payments "
+                            "(account_pub"
+                            ",order_id"
+                            ",token"
+                            ",timestamp"
+                            ",amount_val"
+                            ",amount_frac"
+                            ") VALUES "
+                            "($1,$2,$3,$4,$5,$6);",
+                            6),
+    GNUNET_PQ_make_prepare ("payment_done",
+                            "UPDATE payments "
+                            "SET"
+                            " paid=TRUE "
+                            "WHERE"
+                            "  order_id=$1"
+                            " AND"
+                            "  account_pub=$2"
+                            " AND"
+                            "  paid=FALSE;",
+                            2),
+    GNUNET_PQ_make_prepare ("account_update",
+                            "UPDATE accounts "
+                            "SET"
+                            " expiration_date=$1 "
+                            "WHERE"
+                            " account_pub=$2;",
+                            2),
+    GNUNET_PQ_make_prepare ("account_select",
+                            "SELECT"
+                            " expiration_date "
+                            "FROM"
+                            " accounts "
+                            "WHERE"
+                            " account_pub=$1;",
+                            1),
+    GNUNET_PQ_make_prepare ("payments_select",
+                            "SELECT"
+                            " account_pub"
+                            ",order_id"
+                            ",amount_val"
+                            ",amount_frac"
+                            " FROM payments"
+                            " WHERE paid=FALSE;",
+                            0),
+    GNUNET_PQ_make_prepare ("payments_select_by_account",
+                            "SELECT"
+                            " timestamp"
+                            ",order_id"
+                            ",token"
+                            ",amount_val"
+                            ",amount_frac"
+                            " FROM payments"
+                            " WHERE"
+                            "  paid=FALSE"
+                            " AND"
+                            "  account_pub=$1;",
+                            1),
+    GNUNET_PQ_make_prepare ("gc_accounts",
+                            "DELETE FROM accounts "
+                            "WHERE"
+                            " expiration_date < $1;",
+                            1),
+    GNUNET_PQ_make_prepare ("gc_pending_payments",
+                            "DELETE FROM payments "
+                            "WHERE"
+                            "  paid=FALSE"
+                            " AND"
+                            "  timestamp < $1;",
+                            1),
+    GNUNET_PQ_make_prepare ("backup_insert",
+                            "INSERT INTO backups "
+                            "(account_pub"
+                            ",account_sig"
+                            ",prev_hash"
+                            ",backup_hash"
+                            ",data"
+                            ") VALUES "
+                            "($1,$2,$3,$4,$5);",
+                            5),
+    GNUNET_PQ_make_prepare ("backup_update",
+                            "UPDATE backups "
+                            " SET"
+                            " backup_hash=$1"
+                            ",account_sig=$2"
+                            ",prev_hash=$3"
+                            ",data=$4"
+                            " WHERE"
+                            "   account_pub=$5"
+                            "  AND"
+                            "   backup_hash=$6;",
+                            6),
+    GNUNET_PQ_make_prepare ("backup_select_hash",
+                            "SELECT "
+                            " backup_hash "
+                            "FROM"
+                            " backups "
+                            "WHERE"
+                            " account_pub=$1;",
+                            1),
+    GNUNET_PQ_make_prepare ("backup_select",
+                            "SELECT "
+                            " account_sig"
+                            ",prev_hash"
+                            ",backup_hash"
+                            ",data "
+                            "FROM"
+                            " backups "
+                            "WHERE"
+                            " account_pub=$1;",
+                            1),
+    GNUNET_PQ_make_prepare ("do_commit",
+                            "COMMIT",
+                            0),
+    GNUNET_PQ_PREPARED_STATEMENT_END
+  };
+  enum GNUNET_GenericReturnValue ret;
+
+  ret = GNUNET_PQ_prepare_statements (pg->conn,
+                                      ps);
+  if (GNUNET_OK != ret)
+    return ret;
+  pg->init = true;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Connect to the database if the connection does not exist yet.
+ *
+ * @param pg the plugin-specific state
+ * @param skip_prepare true if we should skip prepared statement setup
+ * @return #GNUNET_OK on success
+ */
+static enum GNUNET_GenericReturnValue
+internal_setup (struct PostgresClosure *pg,
+                bool skip_prepare)
+{
+  if (NULL == pg->conn)
+  {
+#if AUTO_EXPLAIN
+    /* Enable verbose logging to see where queries do not
+       properly use indices */
+    struct GNUNET_PQ_ExecuteStatement es[] = {
+      GNUNET_PQ_make_try_execute ("LOAD 'auto_explain';"),
+      GNUNET_PQ_make_try_execute ("SET auto_explain.log_min_duration=50;"),
+      GNUNET_PQ_make_try_execute ("SET auto_explain.log_timing=TRUE;"),
+      GNUNET_PQ_make_try_execute ("SET auto_explain.log_analyze=TRUE;"),
+      /* https://wiki.postgresql.org/wiki/Serializable suggests to really
+         force the default to 'serializable' if SSI is to be used. */
+      GNUNET_PQ_make_try_execute (
+        "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL SERIALIZABLE;"),
+      GNUNET_PQ_make_try_execute ("SET enable_sort=OFF;"),
+      GNUNET_PQ_make_try_execute ("SET enable_seqscan=OFF;"),
+      GNUNET_PQ_EXECUTE_STATEMENT_END
+    };
+#else
+    struct GNUNET_PQ_ExecuteStatement *es = NULL;
+#endif
+    struct GNUNET_PQ_Context *db_conn;
+
+    db_conn = GNUNET_PQ_connect_with_cfg (pg->cfg,
+                                          "syncdb-postgres",
+                                          NULL,
+                                          es,
+                                          NULL);
+    if (NULL == db_conn)
+      return GNUNET_SYSERR;
+    pg->conn = db_conn;
+  }
+  if (NULL == pg->transaction_name)
+    GNUNET_PQ_reconnect_if_down (pg->conn);
+  if (pg->init)
+    return GNUNET_OK;
+  if (skip_prepare)
+    return GNUNET_OK;
+  return prepare_statements (pg);
+}
+
+
+/**
+ * Do a pre-flight check that we are not in an uncommitted transaction.
+ * If we are, try to commit the previous transaction and output a warning.
+ * Does not return anything, as we will continue regardless of the outcome.
+ *
+ * @param cls the `struct PostgresClosure` with the plugin-specific state
+ * @return #GNUNET_OK if everything is fine
+ *         #GNUNET_NO if a transaction was rolled back
+ *         #GNUNET_SYSERR on hard errors
+ */
+static enum GNUNET_GenericReturnValue
+postgres_preflight (void *cls)
+{
+  struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_ExecuteStatement es[] = {
-    GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS accounts CASCADE;"),
-    GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS payments;"),
-    GNUNET_PQ_make_try_execute ("DROP TABLE IF EXISTS backups;"),
+    GNUNET_PQ_make_execute ("ROLLBACK"),
     GNUNET_PQ_EXECUTE_STATEMENT_END
   };
 
-  return GNUNET_PQ_exec_statements (pg->conn,
-                                    es);
+  if (! pg->init)
+  {
+    if (GNUNET_OK !=
+        internal_setup (pg,
+                        false))
+      return GNUNET_SYSERR;
+  }
+  if (NULL == pg->transaction_name)
+    return GNUNET_OK; /* all good */
+  if (GNUNET_OK ==
+      GNUNET_PQ_exec_statements (pg->conn,
+                                 es))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "BUG: Preflight check rolled back transaction `%s'!\n",
+                pg->transaction_name);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "BUG: Preflight check failed to rollback transaction `%s'!\n",
+                pg->transaction_name);
+  }
+  pg->transaction_name = NULL;
+  return GNUNET_NO;
 }
 
 
 /**
  * Check that the database connection is still up.
  *
- * @param pg connection to check
+ * @param cls a `struct PostgresClosure` with connection to check
  */
 static void
 check_connection (void *cls)
@@ -92,42 +352,6 @@ check_connection (void *cls)
 
 
 /**
- * Do a pre-flight check that we are not in an uncommitted transaction.
- * If we are, try to commit the previous transaction and output a warning.
- * Does not return anything, as we will continue regardless of the outcome.
- *
- * @param cls the `struct PostgresClosure` with the plugin-specific state
- */
-static void
-postgres_preflight (void *cls)
-{
-  struct PostgresClosure *pg = cls;
-  struct GNUNET_PQ_ExecuteStatement es[] = {
-    GNUNET_PQ_make_execute ("COMMIT"),
-    GNUNET_PQ_EXECUTE_STATEMENT_END
-  };
-
-  if (NULL == pg->transaction_name)
-    return; /* all good */
-  if (GNUNET_OK ==
-      GNUNET_PQ_exec_statements (pg->conn,
-                                 es))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "BUG: Preflight check committed transaction `%s'!\n",
-                pg->transaction_name);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "BUG: Preflight check failed to commit transaction `%s'!\n",
-                pg->transaction_name);
-  }
-  pg->transaction_name = NULL;
-}
-
-
-/**
  * Start a transaction.
  *
  * @param cls the `struct PostgresClosure` with the plugin-specific state
@@ -135,7 +359,7 @@ postgres_preflight (void *cls)
  *             must point to a constant
  * @return #GNUNET_OK on success
  */
-static int
+static enum GNUNET_GenericReturnValue
 begin_transaction (void *cls,
                    const char *name)
 {
@@ -164,7 +388,6 @@ begin_transaction (void *cls,
  * Roll back the current transaction of a database connection.
  *
  * @param cls the `struct PostgresClosure` with the plugin-specific state
- * @return #GNUNET_OK on success
  */
 static void
 rollback (void *cls)
@@ -1025,6 +1248,30 @@ postgres_increment_lifetime (void *cls,
 
 
 /**
+ * Initialize tables.
+ *
+ * @param cls the `struct PostgresClosure` with the plugin-specific state
+ * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
+ */
+static enum GNUNET_GenericReturnValue
+postgres_create_tables (void *cls)
+{
+  struct PostgresClosure *pc = cls;
+  struct GNUNET_PQ_Context *conn;
+
+  conn = GNUNET_PQ_connect_with_cfg (pc->cfg,
+                                     "syncdb-postgres",
+                                     "sync-",
+                                     NULL,
+                                     NULL);
+  if (NULL == conn)
+    return GNUNET_SYSERR;
+  GNUNET_PQ_disconnect (conn);
+  return GNUNET_OK;
+}
+
+
+/**
  * Initialize Postgres database subsystem.
  *
  * @param cls a configuration instance
@@ -1036,174 +1283,18 @@ libsync_plugin_db_postgres_init (void *cls)
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct PostgresClosure *pg;
   struct SYNC_DatabasePlugin *plugin;
-  struct GNUNET_PQ_ExecuteStatement es[] = {
-    /* Orders created by the frontend, not signed or given a nonce yet.
-       The contract terms will change (nonce will be added) when moved to the
-       contract terms table */
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS accounts"
-                            "(account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32)"
-                            ",expiration_date INT8 NOT NULL"
-                            ");"),
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS payments"
-                            "(account_pub BYTEA CHECK (length(account_pub)=32)"
-                            ",order_id VARCHAR PRIMARY KEY"
-                            ",token BYTEA CHECK (length(token)=16)"
-                            ",timestamp INT8 NOT NULL"
-                            ",amount_val INT8 NOT NULL" /* amount we were paid */
-                            ",amount_frac INT4 NOT NULL"
-                            ",paid BOOLEAN NOT NULL DEFAULT FALSE"
-                            ");"),
-    GNUNET_PQ_make_execute ("CREATE TABLE IF NOT EXISTS backups"
-                            "(account_pub BYTEA PRIMARY KEY REFERENCES accounts (account_pub) ON DELETE CASCADE"
-                            ",account_sig BYTEA NOT NULL CHECK (length(account_sig)=64)"
-                            ",prev_hash BYTEA NOT NULL CHECK (length(prev_hash)=64)"
-                            ",backup_hash BYTEA NOT NULL CHECK (length(backup_hash)=64)"
-                            ",data BYTEA NOT NULL"
-                            ");"),
-    /* index for gc */
-    GNUNET_PQ_make_try_execute (
-      "CREATE INDEX accounts_expire ON "
-      "accounts (expiration_date);"),
-    GNUNET_PQ_make_try_execute (
-      "CREATE INDEX payments_timestamp ON "
-      "payments (paid,timestamp);"),
-    GNUNET_PQ_EXECUTE_STATEMENT_END
-  };
-  struct GNUNET_PQ_PreparedStatement ps[] = {
-    GNUNET_PQ_make_prepare ("account_insert",
-                            "INSERT INTO accounts "
-                            "(account_pub"
-                            ",expiration_date"
-                            ") VALUES "
-                            "($1,$2);",
-                            2),
-    GNUNET_PQ_make_prepare ("payment_insert",
-                            "INSERT INTO payments "
-                            "(account_pub"
-                            ",order_id"
-                            ",token"
-                            ",timestamp"
-                            ",amount_val"
-                            ",amount_frac"
-                            ") VALUES "
-                            "($1,$2,$3,$4,$5,$6);",
-                            6),
-    GNUNET_PQ_make_prepare ("payment_done",
-                            "UPDATE payments "
-                            "SET"
-                            " paid=TRUE "
-                            "WHERE"
-                            "  order_id=$1"
-                            " AND"
-                            "  account_pub=$2"
-                            " AND"
-                            "  paid=FALSE;",
-                            2),
-    GNUNET_PQ_make_prepare ("account_update",
-                            "UPDATE accounts "
-                            "SET"
-                            " expiration_date=$1 "
-                            "WHERE"
-                            " account_pub=$2;",
-                            2),
-    GNUNET_PQ_make_prepare ("account_select",
-                            "SELECT"
-                            " expiration_date "
-                            "FROM"
-                            " accounts "
-                            "WHERE"
-                            " account_pub=$1;",
-                            1),
-    GNUNET_PQ_make_prepare ("payments_select",
-                            "SELECT"
-                            " account_pub"
-                            ",order_id"
-                            ",amount_val"
-                            ",amount_frac"
-                            " FROM payments"
-                            " WHERE paid=FALSE;",
-                            0),
-    GNUNET_PQ_make_prepare ("payments_select_by_account",
-                            "SELECT"
-                            " timestamp"
-                            ",order_id"
-                            ",token"
-                            ",amount_val"
-                            ",amount_frac"
-                            " FROM payments"
-                            " WHERE"
-                            "  paid=FALSE"
-                            " AND"
-                            "  account_pub=$1;",
-                            1),
-    GNUNET_PQ_make_prepare ("gc_accounts",
-                            "DELETE FROM accounts "
-                            "WHERE"
-                            " expiration_date < $1;",
-                            1),
-    GNUNET_PQ_make_prepare ("gc_pending_payments",
-                            "DELETE FROM payments "
-                            "WHERE"
-                            "  paid=FALSE"
-                            " AND"
-                            "  timestamp < $1;",
-                            1),
-    GNUNET_PQ_make_prepare ("backup_insert",
-                            "INSERT INTO backups "
-                            "(account_pub"
-                            ",account_sig"
-                            ",prev_hash"
-                            ",backup_hash"
-                            ",data"
-                            ") VALUES "
-                            "($1,$2,$3,$4,$5);",
-                            5),
-    GNUNET_PQ_make_prepare ("backup_update",
-                            "UPDATE backups "
-                            " SET"
-                            " backup_hash=$1"
-                            ",account_sig=$2"
-                            ",prev_hash=$3"
-                            ",data=$4"
-                            " WHERE"
-                            "   account_pub=$5"
-                            "  AND"
-                            "   backup_hash=$6;",
-                            6),
-    GNUNET_PQ_make_prepare ("backup_select_hash",
-                            "SELECT "
-                            " backup_hash "
-                            "FROM"
-                            " backups "
-                            "WHERE"
-                            " account_pub=$1;",
-                            1),
-    GNUNET_PQ_make_prepare ("backup_select",
-                            "SELECT "
-                            " account_sig"
-                            ",prev_hash"
-                            ",backup_hash"
-                            ",data "
-                            "FROM"
-                            " backups "
-                            "WHERE"
-                            " account_pub=$1;",
-                            1),
-    GNUNET_PQ_make_prepare ("do_commit",
-                            "COMMIT",
-                            0),
-    GNUNET_PQ_PREPARED_STATEMENT_END
-  };
 
   pg = GNUNET_new (struct PostgresClosure);
   pg->cfg = cfg;
-  pg->conn = GNUNET_PQ_connect_with_cfg (cfg,
-                                         "syncdb-postgres",
-                                         NULL,
-                                         es,
-                                         ps);
-  if (NULL == pg->conn)
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "syncdb-postgres",
+                                               "SQL_DIR",
+                                               &pg->sql_dir))
   {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "syncdb-postgres",
+                               "SQL_DIR");
     GNUNET_free (pg);
     return NULL;
   }
@@ -1216,13 +1307,24 @@ libsync_plugin_db_postgres_init (void *cls)
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                "taler",
                                "CURRENCY");
-    GNUNET_PQ_disconnect (pg->conn);
+    GNUNET_free (pg->sql_dir);
+    GNUNET_free (pg);
+    return NULL;
+  }
+  if (GNUNET_OK !=
+      internal_setup (pg,
+                      true))
+  {
+    GNUNET_free (pg->currency);
+    GNUNET_free (pg->sql_dir);
     GNUNET_free (pg);
     return NULL;
   }
   plugin = GNUNET_new (struct SYNC_DatabasePlugin);
   plugin->cls = pg;
+  plugin->create_tables = &postgres_create_tables;
   plugin->drop_tables = &postgres_drop_tables;
+  plugin->preflight = &postgres_preflight;
   plugin->gc = &postgres_gc;
   plugin->store_payment_TR = &postgres_store_payment;
   plugin->lookup_pending_payments_by_account_TR =
@@ -1249,6 +1351,7 @@ libsync_plugin_db_postgres_done (void *cls)
   struct PostgresClosure *pg = plugin->cls;
 
   GNUNET_PQ_disconnect (pg->conn);
+  GNUNET_free (pg->sql_dir);
   GNUNET_free (pg);
   GNUNET_free (plugin);
   return NULL;

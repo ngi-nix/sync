@@ -1,0 +1,41 @@
+#!/usr/bin/make -f
+
+SHELL := sh -e
+
+include /usr/share/dpkg/architecture.mk
+
+%:
+	dh ${@}
+
+override_dh_auto_configure-arch:
+	dh_auto_configure -- --disable-rpath --with-microhttpd=yes $(shell dpkg-buildflags --export=configure)
+
+override_dh_auto_configure-indep:
+
+override_dh_auto_build-indep:
+
+override_dh_auto_test:
+	# Disabling test suite, incomplete
+
+override_dh_auto_install-arch:
+	dh_auto_install
+
+	# Removing useless files
+	rm -f debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/*.la \
+		debian/tmp/usr/lib/$(DEB_HOST_MULTIARCH)/sync/*.la \
+		debian/tmp/usr/share/doc/sync/COPYING
+
+override_dh_auto_install-indep:
+
+override_dh_auto_clean:
+	dh_auto_clean
+
+override_dh_install:
+	dh_install
+# Done manually for debhelper-compat<13
+	dh_installtmpfiles
+# Remove files already present in libsync-dev from sync-httpd/libsync packages
+	cd debian/libsync; find . -type f,l -exec rm -f ../sync-httpd/{} \;
+	cd debian/libsync; find . -type f,l -exec rm -f ../libsync-dev/{} \;
+	cd debian/sync-httpd; find . -type f,l -exec rm -f ../libsync-dev/{} \;
+	cd debian/libsync-dev; find . -type f,l -exec rm -f ../libsync/{} \;

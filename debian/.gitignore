@@ -1,0 +1,13 @@
+.debhelper/
+*.substvars
+*.log
+libsync/
+libsync-dev/
+sync-httpd/
+sync-cli/
+*.debhelper
+autoreconf.after
+autoreconf.before
+debhelper-build-stamp
+files
+tmp/

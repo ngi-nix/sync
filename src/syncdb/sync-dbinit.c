@@ -39,6 +39,7 @@ static int reset_db;
  */
 static int gc_db;
 
+
 /**
  * Main function that will be run.
  *
@@ -60,14 +61,23 @@ run (void *cls,
   {
     fprintf (stderr,
              "Failed to initialize database plugin.\n");
-    global_ret = 1;
+    global_ret = EXIT_NOTINSTALLED;
     return;
   }
   if (reset_db)
   {
-    (void) plugin->drop_tables (plugin->cls);
+    if (GNUNET_OK != plugin->drop_tables (plugin->cls))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not drop tables as requested. Either database was not yet initialized, or permission denied. Consult the logs. Will still try to create new tables.\n");
+    }
+  }
+  if (GNUNET_OK !=
+      plugin->create_tables (plugin->cls))
+  {
+    global_ret = EXIT_FAILURE;
     SYNC_DB_plugin_unload (plugin);
-    plugin = SYNC_DB_plugin_load (cfg);
+    return;
   }
   if (gc_db)
   {
@@ -79,9 +89,15 @@ run (void *cls,
                                              GNUNET_TIME_relative_multiply (
                                                GNUNET_TIME_UNIT_YEARS,
                                                6));
-    plugin->gc (plugin->cls,
-                now,
-                ancient);
+    if (0 >
+        plugin->gc (plugin->cls,
+                    now,
+                    ancient))
+    {
+      fprintf (stderr,
+               "Garbage collection failed!\n");
+      global_ret = EXIT_FAILURE;
+    }
   }
   SYNC_DB_plugin_unload (plugin);
 }
@@ -93,7 +109,7 @@ run (void *cls,
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
- * @return 0 ok, 1 on error
+ * @return 0 ok, non-zero on error
  */
 int
 main (int argc,
@@ -110,23 +126,22 @@ main (int argc,
                                &gc_db),
     GNUNET_GETOPT_OPTION_END
   };
+  enum GNUNET_GenericReturnValue ret;
 
   /* FIRST get the libtalerutil initialization out
      of the way. Then throw that one away, and force
      the SYNC defaults to be used! */
   (void) TALER_project_data_default ();
   GNUNET_OS_init (SYNC_project_data_default ());
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_log_setup ("sync-dbinit",
-                                   "INFO",
-                                   NULL));
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-                          "sync-dbinit",
-                          "Initialize sync database",
-                          options,
-                          &run, NULL))
-    return 1;
+  ret = GNUNET_PROGRAM_run (argc, argv,
+                            "sync-dbinit",
+                            "Initialize sync database",
+                            options,
+                            &run, NULL);
+  if (GNUNET_SYSERR == ret)
+    return EXIT_INVALIDARGUMENT;
+  if (GNUNET_NO == ret)
+    return EXIT_SUCCESS;
   return global_ret;
 }
 

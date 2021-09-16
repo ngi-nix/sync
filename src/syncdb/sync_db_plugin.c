@@ -28,14 +28,13 @@
  * Initialize the plugin.
  *
  * @param cfg configuration to use
- * @return #GNUNET_OK on success
+ * @return NULL on failure
  */
 struct SYNC_DatabasePlugin *
 SYNC_DB_plugin_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *plugin_name;
   char *lib_name;
-  struct GNUNET_CONFIGURATION_Handle *cfg_dup;
   struct SYNC_DatabasePlugin *plugin;
 
   if (GNUNET_SYSERR ==
@@ -53,13 +52,12 @@ SYNC_DB_plugin_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
                           "libsync_plugin_db_%s",
                           plugin_name);
   GNUNET_free (plugin_name);
-  cfg_dup = GNUNET_CONFIGURATION_dup (cfg);
-  plugin = GNUNET_PLUGIN_load (lib_name, cfg_dup);
+  plugin = GNUNET_PLUGIN_load (lib_name,
+                               (void *) cfg);
   if (NULL != plugin)
     plugin->library_name = lib_name;
   else
     GNUNET_free (lib_name);
-  GNUNET_CONFIGURATION_destroy (cfg_dup);
   return plugin;
 }
 

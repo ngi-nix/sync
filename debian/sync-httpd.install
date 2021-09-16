@@ -1,0 +1,6 @@
+usr/bin/
+usr/lib/*/sync/libsync_plugin*.*
+usr/share/sync/sql/*
+usr/share/sync/config.d/*
+debian/etc/* /etc/
+debian/db/install/* usr/share/dbconfig-common/scripts/sync/install/

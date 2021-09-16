@@ -1,0 +1,8 @@
+[Unit]
+Description=Sync backup backend
+
+[Service]
+User=sync-httpd
+Type=simple
+Restart=on-failure
+ExecStart=/usr/bin/sync-httpd -c /etc/sync/sync.conf

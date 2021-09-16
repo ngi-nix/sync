@@ -651,7 +651,14 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
+  if (GNUNET_OK !=
+      db->preflight (db->cls))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Database not setup. Did you run sync-dbinit?\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   fh = TALER_MHD_bind (config,
                        "sync",
                        &port);

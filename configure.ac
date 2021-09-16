@@ -109,6 +109,12 @@ AX_LIB_POSTGRESQL([9.3])
 AS_IF([test "x$found_postgresql" = "xyes"],[postgres=true])
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
+SYNC_LIB_LDFLAGS="-export-dynamic -no-undefined"
+SYNC_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
+
+AC_SUBST(SYNC_LIB_LDFLAGS)
+AC_SUBST(SYNC_PLUGIN_LDFLAGS)
+
 # Check for Taler's libtalerpq
 libtalerpq=0
 AC_MSG_CHECKING([for libtalerpq])

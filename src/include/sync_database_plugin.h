@@ -1,6 +1,6 @@
 /*
   This file is part of GNU Taler
-  Copyright (C) 2019 Taler Systems SA
+  Copyright (C) 2019, 2021 Taler Systems SA
 
   Taler is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
@@ -116,8 +116,33 @@ struct SYNC_DatabasePlugin
    * @param cls closure
    * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
    */
-  int
-  (*drop_tables) (void *cls);
+  enum GNUNET_GenericReturnValue
+  (*drop_tables)(void *cls);
+
+
+  /**
+   * Create the necessary tables if they are not present
+   *
+   * @param cls the @e cls of this struct with the plugin-specific state
+   * @return #GNUNET_OK upon success; #GNUNET_SYSERR upon failure
+   */
+  enum GNUNET_GenericReturnValue
+  (*create_tables)(void *cls);
+
+
+  /**
+   * Do a pre-flight check that we are not in an uncommitted transaction.
+   * If we are, try to commit the previous transaction and output a warning.
+   * Does not return anything, as we will continue regardless of the outcome.
+   *
+   * @param cls the `struct PostgresClosure` with the plugin-specific state
+   * @return #GNUNET_OK if everything is fine
+   *         #GNUNET_NO if a transaction was rolled back
+   *         #GNUNET_SYSERR on hard errors
+   */
+  enum GNUNET_GenericReturnValue
+  (*preflight)(void *cls);
+
 
   /**
    * Function called to perform "garbage collection" on the

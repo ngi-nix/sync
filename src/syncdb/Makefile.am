@@ -15,6 +15,13 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+sqldir = $(prefix)/share/sync/sql/
+
+sql_DATA = \
+  sync-0000.sql \
+  sync-0001.sql \
+  drop0001.sql
+
 bin_PROGRAMS = \
   sync-dbinit
 
@@ -48,7 +55,7 @@ libsync_plugin_db_postgres_la_SOURCES = \
 libsync_plugin_db_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libsync_plugin_db_postgres_la_LDFLAGS = \
-  $(TALER_PLUGIN_LDFLAGS) \
+  $(SYNC_PLUGIN_LDFLAGS) \
   -lgnunetpq \
   -lpq \
   -ltalerpq \
