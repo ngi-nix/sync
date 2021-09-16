@@ -469,7 +469,7 @@ SH_trigger_curl ()
  * @param daemon_handle HTTP server to prepare to run
  */
 static struct GNUNET_SCHEDULER_Task *
-prepare_daemon ()
+prepare_daemon (void)
 {
   struct GNUNET_SCHEDULER_Task *ret;
   fd_set rs;
@@ -540,7 +540,7 @@ run (void *cls,
   if (SH_sync_connection_close)
     go |= TALER_MHD_GO_FORCE_CONNECTION_CLOSE;
   TALER_MHD_setup (go);
-  result = GNUNET_SYSERR;
+  result = EXIT_NOTCONFIGURED;
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
   GNUNET_assert (GNUNET_OK ==
@@ -621,12 +621,10 @@ run (void *cls,
                              certfile,
                              keyfile,
                              keypass);
-
-  // Case where APIKEY is needed.
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (config,
                                              "sync",
-                                             "APIKEY",
+                                             "API_KEY",
                                              &apikey))
   {
     char *auth_header;
@@ -649,6 +647,7 @@ run (void *cls,
   if (NULL ==
       (db = SYNC_DB_plugin_load (config)))
   {
+    result = EXIT_NOTINSTALLED;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -659,6 +658,7 @@ run (void *cls,
   if ( (0 == port) &&
        (-1 == fh) )
   {
+    result = EXIT_NOPERMISSION;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -669,17 +669,18 @@ run (void *cls,
                           MHD_OPTION_LISTEN_SOCKET, fh,
                           MHD_OPTION_NOTIFY_COMPLETED,
                           &handle_mhd_completion_callback, NULL,
-                          MHD_OPTION_CONNECTION_TIMEOUT, (unsigned
-                                                          int) 10 /* 10s */,
+                          MHD_OPTION_CONNECTION_TIMEOUT,
+                          (unsigned int) 10 /* 10s */,
                           MHD_OPTION_END);
   if (NULL == mhd)
   {
+    result = EXIT_FAILURE;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to launch HTTP service, exiting.\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  result = GNUNET_OK;
+  result = EXIT_SUCCESS;
   mhd_task = prepare_daemon ();
 }
 
@@ -722,18 +723,21 @@ main (int argc,
                                  &certtype),
     GNUNET_GETOPT_OPTION_END
   };
+  enum GNUNET_GenericReturnValue ret;
 
   /* FIRST get the libtalerutil initialization out
      of the way. Then throw that one away, and force
      the SYNC defaults to be used! */
   (void) TALER_project_data_default ();
   GNUNET_OS_init (SYNC_project_data_default ());
-  if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv,
-                          "sync-httpd",
-                          "sync HTTP interface",
-                          options,
-                          &run, NULL))
-    return 3;
-  return (GNUNET_OK == result) ? 0 : 1;
+  ret = GNUNET_PROGRAM_run (argc, argv,
+                            "sync-httpd",
+                            "sync HTTP interface",
+                            options,
+                            &run, NULL);
+  if (GNUNET_NO == ret)
+    return EXIT_SUCCESS;
+  if (GNUNET_SYSERR == ret)
+    return EXIT_INVALIDARGUMENT;
+  return result;
 }
