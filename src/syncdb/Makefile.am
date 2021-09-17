@@ -1,6 +1,11 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+pkgcfgdir = $(prefix)/share/sync/config.d/
+
+pkgcfg_DATA = \
+  sync_db_postgres.conf
+
 plugindir = $(libdir)/sync
 
 if HAVE_POSTGRESQL
@@ -80,4 +85,5 @@ TESTS = \
   test_sync_db-postgres
 
 EXTRA_DIST = \
+  $(pkgcfg_DATA) \
   test_sync_db_postgres.conf

@@ -9,11 +9,16 @@ endif
 
 pkgcfgdir = $(prefix)/share/sync/config.d/
 
+pkgcfg_DATA = \
+  paths.conf
+
+
 bin_SCRIPTS = \
   sync-config
 
 EXTRA_DIST = \
   $(bin_SCRIPTS) \
+  $(pkgcfg_DATA) \
   sync-config.in
 
 edit_script = $(SED) -e 's,%libdir%,$(libdir),'g $(NULL)
