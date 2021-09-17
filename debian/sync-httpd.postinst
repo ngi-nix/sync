@@ -2,7 +2,7 @@
 
 set -e
 
-TALER_HOME="/var/lib/taler/"
+SYNC_HOME="/var/lib/sync/"
 _USERNAME=sync-httpd
 _GROUPNAME=www-data
 
@@ -17,7 +17,7 @@ case "${1}" in
 configure)
   # Creating taler users if needed
   if ! getent passwd ${_USERNAME} >/dev/null; then
-    adduser --quiet --system --ingroup ${_GROUPNAME} --no-create-home --home ${TALER_HOME} ${_USERNAME}
+    adduser --quiet --system --ingroup ${_GROUPNAME} --no-create-home --home ${SYNC_HOME} ${_USERNAME}
   fi
 
   if ! dpkg-statoverride --list /etc/sync/secrets/sync-db.secret.conf >/dev/null 2>&1; then

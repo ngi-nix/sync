@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -eu
+
+if ! type gnunet-config >/dev/null; then
+  echo "$0 needs gnunet-config to be installed"
+  exit 1
+fi
+
+GC=`which gnunet-config`
+SO=`ls %libdir%/libsyncutil.so.* | sort -n | tail -n1`
+export LD_PRELOAD=${LD_PRELOAD:-}:${SO}
+exec gnunet-config "$@"

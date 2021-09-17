@@ -6,3 +6,6 @@ User=sync-httpd
 Type=simple
 Restart=on-failure
 ExecStart=/usr/bin/sync-httpd -c /etc/sync/sync.conf
+
+[Install]
+WantedBy=multi-user.target

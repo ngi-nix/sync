@@ -13,7 +13,17 @@ bin_SCRIPTS = \
   sync-config
 
 EXTRA_DIST = \
-  $(bin_SCRIPTS)
+  $(bin_SCRIPTS) \
+  sync-config.in
+
+edit_script = $(SED) -e 's,%libdir%,$(libdir),'g $(NULL)
+
+sync-config: sync-config.in
+	rm -f $@ $@.tmp && \
+	$(edit_script) $< >$@.tmp && \
+	chmod a-w+x $@.tmp && \
+	mv $@.tmp $@
+
 
 lib_LTLIBRARIES = \
   libsyncutil.la
