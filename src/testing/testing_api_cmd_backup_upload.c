@@ -82,7 +82,7 @@ struct BackupUploadState
   /**
    * Payment order ID we got back, if any. Otherwise NULL.
    */
-  char *payment_order_id;
+  const char *payment_order_id;
 
   /**
    * Claim token we got back, if any. Otherwise all zeros.
@@ -294,18 +294,17 @@ backup_upload_run (void *cls,
     }
     if (0 != (SYNC_TESTING_UO_REFERENCE_ORDER_ID & bus->uopt))
     {
-      const char *order_id;
+      const char **order_id;
 
       if (GNUNET_OK !=
           TALER_TESTING_get_trait_order_id (ref,
-                                            0,
                                             &order_id))
       {
         GNUNET_break (0);
         TALER_TESTING_interpreter_fail (bus->is);
         return;
       }
-      bus->payment_order_req = order_id;
+      bus->payment_order_req = *order_id;
       if (NULL == bus->payment_order_req)
       {
         GNUNET_break (0);
@@ -375,7 +374,6 @@ backup_upload_cleanup (void *cls,
     SYNC_upload_cancel (bus->uo);
     bus->uo = NULL;
   }
-  GNUNET_free (bus->payment_order_id);
   GNUNET_free (bus);
 }
 
@@ -401,25 +399,21 @@ backup_upload_traits (void *cls,
                                   &bus->curr_hash),
     SYNC_TESTING_make_trait_hash (SYNC_TESTING_TRAIT_HASH_PREVIOUS,
                                   &bus->prev_hash),
-    TALER_TESTING_make_trait_claim_token (0,
-                                          &bus->token),
+    TALER_TESTING_make_trait_claim_token (&bus->token),
     SYNC_TESTING_make_trait_account_pub (0,
                                          &bus->sync_pub),
     SYNC_TESTING_make_trait_account_priv (0,
                                           &bus->sync_priv),
-    TALER_TESTING_make_trait_order_id (0,
-                                       bus->payment_order_id),
+    TALER_TESTING_make_trait_order_id (&bus->payment_order_id),
     TALER_TESTING_trait_end ()
   };
   struct TALER_TESTING_Trait ftraits[] = {
-    TALER_TESTING_make_trait_claim_token (0,
-                                          &bus->token),
+    TALER_TESTING_make_trait_claim_token (&bus->token),
     SYNC_TESTING_make_trait_account_pub (0,
                                          &bus->sync_pub),
     SYNC_TESTING_make_trait_account_priv (0,
                                           &bus->sync_priv),
-    TALER_TESTING_make_trait_order_id (0,
-                                       bus->payment_order_id),
+    TALER_TESTING_make_trait_order_id (&bus->payment_order_id),
     TALER_TESTING_trait_end ()
   };
 
