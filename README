@@ -77,6 +77,14 @@ are installed in a non-standard place, use the configure script options
 --with-gnunet=DIR, --with-exchange=DIR, and --with-merchant=DIR,
 respectively.
 
+The following are likewise required:
+
+  microhttpd    --with-microhttpd=DIR
+  PostgreSQL    --with-postgresql=PATH-TO-PG-CONFIG
+
+Other non-essential dependencies are indicated by --with-FOO
+in the "./configure --help" output.
+
 
 License:
 ========
