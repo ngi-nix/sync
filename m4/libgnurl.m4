@@ -61,7 +61,7 @@ AC_DEFUN([LIBGNURL_CHECK_CONFIG],
   AH_TEMPLATE([LIBGNURL_PROTOCOL_SMTP],[Defined if libgnurl supports SMTP])
 
   AC_ARG_WITH(libgnurl,
-     AC_HELP_STRING([--with-libgnurl=PREFIX],[look for the gnurl library in PREFIX/lib and headers in PREFIX/include]),
+     AS_HELP_STRING([--with-libgnurl=PREFIX],[look for the gnurl library in PREFIX/lib and headers in PREFIX/include]),
      [_libgnurl_with=$withval],[_libgnurl_with=ifelse([$1],,[yes],[$1])])
 
   if test "$_libgnurl_with" != "no" ; then
