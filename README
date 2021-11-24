@@ -68,6 +68,16 @@ At this time, Sync only works with a Postgres database. Other database
 backends could easily be written in the future.
 
 
+Dependencies
+============
+
+See INSTALL for generic installation instructions.  In addition, Sync
+requires GNUnet, Taler Exchange, and Taler Merchant libraries.  If these
+are installed in a non-standard place, use the configure script options
+--with-gnunet=DIR, --with-exchange=DIR, and --with-merchant=DIR,
+respectively.
+
+
 License:
 ========
 
