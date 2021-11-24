@@ -79,7 +79,7 @@ respectively.
 
 The following are likewise required:
 
-  microhttpd    --with-microhttpd=DIR
+  libmicrohttpd --with-microhttpd=DIR
   PostgreSQL    --with-postgresql=PATH-TO-PG-CONFIG
 
 Other non-essential dependencies are indicated by --with-FOO
