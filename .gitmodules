@@ -1,0 +1,4 @@
+[submodule "doc/prebuilt"]
+	path = doc/prebuilt
+	url = https://git.taler.net/docs.git
+	branch = prebuilt
