@@ -61,7 +61,7 @@ SH_handler_config (struct SH_RequestHandler *rh,
     TALER_JSON_pack_amount ("annual_fee",
                             &SH_annual_fee),
     GNUNET_JSON_pack_string ("version",
-                             "1:0:1"));
+                             "2:0:0"));
 }
 
 

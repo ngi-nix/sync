@@ -452,11 +452,11 @@ postgres_gc (void *cls,
 {
   struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_QueryParam params[] = {
-    TALER_PQ_query_param_absolute_time (&expire_backups),
+    GNUNET_PQ_query_param_absolute_time (&expire_backups),
     GNUNET_PQ_query_param_end
   };
   struct GNUNET_PQ_QueryParam params2[] = {
-    TALER_PQ_query_param_absolute_time (&expire_pending_payments),
+    GNUNET_PQ_query_param_absolute_time (&expire_pending_payments),
     GNUNET_PQ_query_param_end
   };
   enum GNUNET_DB_QueryStatus qs;
@@ -496,12 +496,12 @@ postgres_store_payment (void *cls,
   struct PostgresClosure *pg = cls;
   enum GNUNET_DB_QueryStatus qs;
   struct TALER_ClaimTokenP tok;
-  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_Timestamp now = GNUNET_TIME_timestamp_get ();
   struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_auto_from_type (account_pub),
     GNUNET_PQ_query_param_string (order_id),
     GNUNET_PQ_query_param_auto_from_type (&tok),
-    GNUNET_PQ_query_param_absolute_time (&now),
+    GNUNET_PQ_query_param_timestamp (&now),
     TALER_PQ_query_param_amount (amount),
     GNUNET_PQ_query_param_end
   };
@@ -581,13 +581,13 @@ payment_by_account_cb (void *cls,
 
   for (unsigned int i = 0; i < num_results; i++)
   {
-    struct GNUNET_TIME_Absolute timestamp;
+    struct GNUNET_TIME_Timestamp timestamp;
     char *order_id;
     struct TALER_Amount amount;
     struct TALER_ClaimTokenP token;
     struct GNUNET_PQ_ResultSpec rs[] = {
-      GNUNET_PQ_result_spec_absolute_time ("timestamp",
-                                           &timestamp),
+      GNUNET_PQ_result_spec_timestamp ("timestamp",
+                                       &timestamp),
       GNUNET_PQ_result_spec_string ("order_id",
                                     &order_id),
       GNUNET_PQ_result_spec_auto_from_type ("token",
@@ -723,7 +723,7 @@ postgres_store_backup (void *cls,
 
   /* First, check if account exists */
   {
-    struct GNUNET_TIME_Absolute ed;
+    struct GNUNET_TIME_Timestamp ed;
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (account_pub),
       GNUNET_PQ_query_param_end
@@ -864,7 +864,7 @@ postgres_update_backup (void *cls,
 
   /* First, check if account exists */
   {
-    struct GNUNET_TIME_Absolute ed;
+    struct GNUNET_TIME_Timestamp ed;
     struct GNUNET_PQ_QueryParam params[] = {
       GNUNET_PQ_query_param_auto_from_type (account_pub),
       GNUNET_PQ_query_param_end
@@ -1000,7 +1000,7 @@ postgres_lookup_account (void *cls,
 
   /* check if account exists */
   {
-    struct GNUNET_TIME_Absolute expiration;
+    struct GNUNET_TIME_Timestamp expiration;
     struct GNUNET_PQ_ResultSpec rs[] = {
       GNUNET_PQ_result_spec_auto_from_type ("expiration_date",
                                             &expiration),
@@ -1111,7 +1111,7 @@ postgres_increment_lifetime (void *cls,
                              struct GNUNET_TIME_Relative lifetime)
 {
   struct PostgresClosure *pg = cls;
-  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_Timestamp expiration;
   enum GNUNET_DB_QueryStatus qs;
 
   check_connection (pg);
@@ -1157,8 +1157,8 @@ postgres_increment_lifetime (void *cls,
       GNUNET_PQ_query_param_end
     };
     struct GNUNET_PQ_ResultSpec rs[] = {
-      TALER_PQ_result_spec_absolute_time ("expiration_date",
-                                          &expiration),
+      GNUNET_PQ_result_spec_timestamp ("expiration_date",
+                                       &expiration),
       GNUNET_PQ_result_spec_end
     };
 
@@ -1180,11 +1180,11 @@ postgres_increment_lifetime (void *cls,
     {
       struct GNUNET_PQ_QueryParam params[] = {
         GNUNET_PQ_query_param_auto_from_type (account_pub),
-        GNUNET_PQ_query_param_absolute_time (&expiration),
+        GNUNET_PQ_query_param_timestamp (&expiration),
         GNUNET_PQ_query_param_end
       };
 
-      expiration = GNUNET_TIME_relative_to_absolute (lifetime);
+      expiration = GNUNET_TIME_relative_to_timestamp (lifetime);
       qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
                                                "account_insert",
                                                params);
@@ -1193,13 +1193,14 @@ postgres_increment_lifetime (void *cls,
   case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     {
       struct GNUNET_PQ_QueryParam params[] = {
-        GNUNET_PQ_query_param_absolute_time (&expiration),
+        GNUNET_PQ_query_param_timestamp (&expiration),
         GNUNET_PQ_query_param_auto_from_type (account_pub),
         GNUNET_PQ_query_param_end
       };
 
-      expiration = GNUNET_TIME_absolute_add (expiration,
-                                             lifetime);
+      expiration = GNUNET_TIME_absolute_to_timestamp (
+        GNUNET_TIME_absolute_add (expiration.abs_time,
+                                  lifetime));
       qs = GNUNET_PQ_eval_prepared_non_select (pg->conn,
                                                "account_update",
                                                params);

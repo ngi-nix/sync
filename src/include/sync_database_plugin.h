@@ -81,7 +81,7 @@ enum SYNC_DB_QueryStatus
  */
 typedef void
 (*SYNC_DB_PaymentPendingIterator)(void *cls,
-                                  struct GNUNET_TIME_Absolute timestamp,
+                                  struct GNUNET_TIME_Timestamp timestamp,
                                   const char *order_id,
                                   const struct TALER_ClaimTokenP *token,
                                   const struct TALER_Amount *amount);

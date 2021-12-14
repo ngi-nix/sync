@@ -60,7 +60,7 @@ static struct SYNC_DatabasePlugin *plugin;
  */
 static void
 payment_it (void *cls,
-            struct GNUNET_TIME_Absolute timestamp,
+            struct GNUNET_TIME_Timestamp timestamp,
             const char *order_id,
             const struct TALER_ClaimTokenP *token,
             const struct TALER_Amount *amount)
@@ -235,7 +235,6 @@ run (void *cls)
                                     4,
                                     "DATA"));
   ts = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS);
-  (void) GNUNET_TIME_round_abs (&ts);
   FAILIF (0 >
           plugin->gc (plugin->cls,
                       ts,

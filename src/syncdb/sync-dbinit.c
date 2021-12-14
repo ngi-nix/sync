@@ -85,7 +85,6 @@ run (void *cls,
     struct GNUNET_TIME_Absolute ancient;
 
     now = GNUNET_TIME_absolute_get ();
-    (void) GNUNET_TIME_round_abs (&now);
     ancient = GNUNET_TIME_absolute_subtract (now,
                                              GNUNET_TIME_relative_multiply (
                                                GNUNET_TIME_UNIT_YEARS,

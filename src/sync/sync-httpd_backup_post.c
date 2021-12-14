@@ -127,7 +127,7 @@ struct BackupContext
    * Timestamp of the order in @e existing_order_id. Used to
    * select the most recent unpaid offer.
    */
-  struct GNUNET_TIME_Absolute existing_order_timestamp;
+  struct GNUNET_TIME_Timestamp existing_order_timestamp;
 
   /**
    * Expected total upload size.
@@ -371,7 +371,7 @@ proposal_cb (void *cls,
  */
 static void
 ongoing_payment_cb (void *cls,
-                    struct GNUNET_TIME_Absolute timestamp,
+                    struct GNUNET_TIME_Timestamp timestamp,
                     const char *order_id,
                     const struct TALER_ClaimTokenP *token,
                     const struct TALER_Amount *amount)
@@ -383,7 +383,9 @@ ongoing_payment_cb (void *cls,
                              &SH_annual_fee))
     return; /* can't re-use, fees changed */
   if ( (NULL == bc->existing_order_id) ||
-       (bc->existing_order_timestamp.abs_value_us < timestamp.abs_value_us) )
+       (GNUNET_TIME_timestamp_cmp (bc->existing_order_timestamp,
+                                   (<),
+                                   timestamp)) )
   {
     GNUNET_free (bc->existing_order_id);
     bc->existing_order_id = GNUNET_strdup (order_id);
