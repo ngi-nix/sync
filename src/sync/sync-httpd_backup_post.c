@@ -384,7 +384,7 @@ ongoing_payment_cb (void *cls,
     return; /* can't re-use, fees changed */
   if ( (NULL == bc->existing_order_id) ||
        (GNUNET_TIME_timestamp_cmp (bc->existing_order_timestamp,
-                                   (<),
+                                   <,
                                    timestamp)) )
   {
     GNUNET_free (bc->existing_order_id);
