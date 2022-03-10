@@ -356,46 +356,46 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
     if  (0 != (po & SYNC_PO_FRESH_ORDER))
     {
       uo->url = (0 != (po & SYNC_PO_FORCE_PAYMENT))
-      ? TALER_url_join (base_url,
-                        path,
-                        "fresh",
-                        "y",
-                        "pay",
-                        "y",
-                        (NULL != paid_order_id)
-                                ? "paying"
-                                : NULL,
-                        paid_order_id,
-                        NULL)
-              : TALER_url_join (base_url,
-                                path,
-                                "fresh",
-                                "y",
-                                (NULL != paid_order_id)
-                                ? "paying"
-                                : NULL,
-                                paid_order_id,
-                                NULL);
+                ? TALER_url_join (base_url,
+                                  path,
+                                  "fresh",
+                                  "y",
+                                  "pay",
+                                  "y",
+                                  (NULL != paid_order_id)
+                                  ? "paying"
+                                  : NULL,
+                                  paid_order_id,
+                                  NULL)
+                : TALER_url_join (base_url,
+                                  path,
+                                  "fresh",
+                                  "y",
+                                  (NULL != paid_order_id)
+                                  ? "paying"
+                                  : NULL,
+                                  paid_order_id,
+                                  NULL);
     }
     else
     {
       uo->url = (0 != (po & SYNC_PO_FORCE_PAYMENT))
-      ? TALER_url_join (base_url,
-                        path,
-                        "pay",
-                        "y",
-                        (NULL != paid_order_id)
-                                ? "paying"
-                                : NULL,
-                        paid_order_id,
-                        NULL)
-              : TALER_url_join (base_url,
-                                path,
-                                (NULL != paid_order_id)
-                                ? "paying"
-                                : NULL,
-                                paid_order_id,
-                                NULL);
+                ? TALER_url_join (base_url,
+                                  path,
+                                  "pay",
+                                  "y",
+                                  (NULL != paid_order_id)
+                                  ? "paying"
+                                  : NULL,
+                                  paid_order_id,
+                                  NULL)
+                : TALER_url_join (base_url,
+                                  path,
+                                  (NULL != paid_order_id)
+                                  ? "paying"
+                                  : NULL,
+                                  paid_order_id,
+                                  NULL);
     }
 
     GNUNET_free (path);
