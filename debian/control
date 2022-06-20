@@ -45,10 +45,11 @@ Depends:
  netbase,
  sudo,
  apache2 | nginx | httpd,
- postgresql,
  dbconfig-pgsql | dbconfig-no-thanks,
  ${misc:Depends},
  ${shlibs:Depends}
+Recommends:
+ postgresql (>=13.0)
 Description: GNU Taler's encrypted backup store.
 
 Package: libsync-dev
