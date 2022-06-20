@@ -2,6 +2,10 @@
 
 set -e
 
+if [ -d /run/systemd/system ] && [ "$1" = remove ]; then
+        deb-systemd-invoke stop 'sync-httpd.service' >/dev/null || true
+fi
+
 if [ -f /usr/share/debconf/confmodule ]; then
   . /usr/share/debconf/confmodule
 fi

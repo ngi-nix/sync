@@ -3,7 +3,10 @@ usr/lib/*/libsyncdb.so.*
 usr/lib/*/sync/libsync_plugin*.*
 usr/share/sync/sql/*
 usr/share/sync/config.d/*
-debian/etc/* /etc/
-debian/db/install/* usr/share/dbconfig-common/scripts/sync/install/
 usr/share/man/man1/sync-dbinit.1
 usr/share/man/man1/sync-httpd.1
+
+debian/etc/* /etc/
+
+# Files needed by dbconf
+debian/db/install/* usr/share/dbconfig-common/scripts/sync-httpd/install/

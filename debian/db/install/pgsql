@@ -17,7 +17,7 @@ if [ -f /etc/dbconfig-common/sync-httpd.conf ]; then
       $conf_sync_db
 
     # Allow the taler-merchant-httpd user to create schemas, needed by dbinit
-    echo "GRANT CREATE on database \"$dbc_dbname\" to \"sync-httpd\";" | sudo -u postgres psql -f -
+    echo "GRANT CREATE ON DATABASE \"${dbc_dbname}\" TO \"sync-httpd\";" | sudo -u postgres psql -f -
     # Run database initialization logic
     sudo -u sync-httpd sync-dbinit -c /etc/sync/sync.conf
     ;;
