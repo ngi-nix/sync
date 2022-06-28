@@ -8,9 +8,9 @@ Build-Depends:
  autopoint,
  debhelper-compat (= 12),
  gettext,
- libgnunet-dev (>=0.17.0),
- libtalerexchange-dev (>= 0.9.0),
- libtalermerchant-dev (>= 0.9.0),
+ libgnunet-dev (>=0.17.1),
+ libtalerexchange-dev (>= 0.8.99),
+ libtalermerchant-dev (>= 0.8.99),
  libpq-dev (>=13.0),
  pkg-config,
  po-debconf,
@@ -37,8 +37,8 @@ Architecture: any
 Pre-Depends:
  ${misc:Pre-Depends}
 Depends:
- libtalerexchange (>= 0.9.0),
- libtalermerchant (>= 0.9.0),
+ libtalerexchange (>= 0.8.99),
+ libtalermerchant (>= 0.8.99),
  libgnutls30 (>= 3.7.1),
  adduser,
  lsb-base,
@@ -56,9 +56,9 @@ Package: libsync-dev
 Section: libdevel
 Architecture: any
 Depends:
- libtalermerchant-dev (>= 0.9.0),
- libtalerexchange-dev (>= 0.9.0),
- libgnunet-dev (>=0.17.0),
+ libtalermerchant-dev (>= 0.8.99),
+ libtalerexchange-dev (>= 0.8.99),
+ libgnunet-dev (>=0.17.1),
  ${misc:Depends},
  ${shlibs:Depends}
 Description: libraries to talk to a Sync provider (development)
