@@ -7,6 +7,9 @@ include /usr/share/dpkg/architecture.mk
 %:
 	dh ${@}
 
+override_dh_builddeb:
+    dh_builddeb -- -Zgzip
+
 override_dh_auto_configure-arch:
 	dh_auto_configure -- --disable-rpath --with-microhttpd=yes $(shell dpkg-buildflags --export=configure)
 
