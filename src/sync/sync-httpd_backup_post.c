@@ -400,27 +400,57 @@ ongoing_payment_cb (void *cls,
  * Callback to process a GET /check-payment request
  *
  * @param cls our `struct BackupContext`
- * @param hr HTTP response details
  * @param osr order status
  */
 static void
 check_payment_cb (void *cls,
-                  const struct TALER_MERCHANT_HttpResponse *hr,
                   const struct TALER_MERCHANT_OrderStatusResponse *osr)
 {
   struct BackupContext *bc = cls;
+  const struct TALER_MERCHANT_HttpResponse *hr = &osr->hr;
 
   /* refunds are not supported, verify */
   bc->omgh = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Payment status checked: %d\n",
-              osr->status);
   GNUNET_CONTAINER_DLL_remove (bc_head,
                                bc_tail,
                                bc);
   MHD_resume_connection (bc->con);
   SH_trigger_daemon ();
-  switch (osr->status)
+  switch (hr->http_status)
+  {
+  case 0:
+    /* Likely timeout, complain! */
+    bc->response_code = MHD_HTTP_GATEWAY_TIMEOUT;
+    bc->resp = TALER_MHD_make_error (
+      TALER_EC_SYNC_GENERIC_BACKEND_TIMEOUT,
+      NULL);
+    return;
+  case MHD_HTTP_OK:
+    break; /* handled below */
+  default:
+    /* Unexpected backend response */
+    bc->response_code = MHD_HTTP_BAD_GATEWAY;
+    bc->resp = TALER_MHD_MAKE_JSON_PACK (
+      GNUNET_JSON_pack_uint64 ("code",
+                               TALER_EC_SYNC_GENERIC_BACKEND_ERROR),
+      GNUNET_JSON_pack_string ("hint",
+                               TALER_ErrorCode_get_hint (
+                                 TALER_EC_SYNC_GENERIC_BACKEND_ERROR)),
+      GNUNET_JSON_pack_uint64 ("backend-ec",
+                               (json_int_t) hr->ec),
+      GNUNET_JSON_pack_uint64 ("backend-http-status",
+                               (json_int_t) hr->http_status),
+      GNUNET_JSON_pack_allow_null (
+        GNUNET_JSON_pack_object_incref ("backend-reply",
+                                        (json_t *) hr->reply)));
+    return;
+  }
+
+  GNUNET_assert (MHD_HTTP_OK == hr->http_status);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Payment status checked: %d\n",
+              osr->details.success.status);
+  switch (osr->details.success.status)
   {
   case TALER_MERCHANT_OSC_PAID:
     {
