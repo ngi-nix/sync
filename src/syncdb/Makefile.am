@@ -23,9 +23,9 @@ endif
 sqldir = $(prefix)/share/sync/sql/
 
 sql_DATA = \
-  sync-0000.sql \
+  versioning.sql \
   sync-0001.sql \
-  drop0001.sql
+  drop.sql
 
 bin_PROGRAMS = \
   sync-dbinit
@@ -81,6 +81,7 @@ test_sync_db_postgres_LDFLAGS = \
   -ltalerutil \
   $(XLIB)
 
+AM_TESTS_ENVIRONMENT=export SYNC_PREFIX=$${SYNC_PREFIX:-@libdir@};export PATH=$${SYNC_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
   test_sync_db-postgres
 

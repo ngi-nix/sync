@@ -78,16 +78,25 @@ postgres_drop_tables (void *cls)
 {
   struct PostgresClosure *pg = cls;
   struct GNUNET_PQ_Context *conn;
+  enum GNUNET_GenericReturnValue ret;
 
+  if (NULL != pg->conn)
+  {
+    GNUNET_PQ_disconnect (pg->conn);
+    pg->conn = NULL;
+    pg->init = false;
+  }
   conn = GNUNET_PQ_connect_with_cfg (pg->cfg,
                                      "syncdb-postgres",
-                                     "drop",
+                                     NULL,
                                      NULL,
                                      NULL);
   if (NULL == conn)
     return GNUNET_SYSERR;
+  ret = GNUNET_PQ_exec_sql (conn,
+                            "drop");
   GNUNET_PQ_disconnect (conn);
-  return GNUNET_OK;
+  return ret;
 }
 
 
@@ -314,7 +323,11 @@ postgres_preflight (void *cls)
     if (GNUNET_OK !=
         internal_setup (pg,
                         false))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to ensure DB is initialized\n");
       return GNUNET_SYSERR;
+    }
   }
   if (NULL == pg->transaction_name)
     return GNUNET_OK; /* all good */
@@ -1352,6 +1365,7 @@ libsync_plugin_db_postgres_done (void *cls)
   struct PostgresClosure *pg = plugin->cls;
 
   GNUNET_PQ_disconnect (pg->conn);
+  GNUNET_free (pg->currency);
   GNUNET_free (pg->sql_dir);
   GNUNET_free (pg);
   GNUNET_free (plugin);
