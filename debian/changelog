@@ -1,4 +1,4 @@
-taler-exchange (0.8.99-2) unstable; urgency=low
+sync (0.8.99-2) unstable; urgency=low
 
   * Packaging latest pre-release from Git.
 
