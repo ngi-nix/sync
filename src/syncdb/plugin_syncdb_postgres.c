@@ -116,8 +116,7 @@ prepare_statements (void *cls)
                             "(account_pub"
                             ",expiration_date"
                             ") VALUES "
-                            "($1,$2);",
-                            2),
+                            "($1,$2);"),
     GNUNET_PQ_make_prepare ("payment_insert",
                             "INSERT INTO payments "
                             "(account_pub"
@@ -127,8 +126,7 @@ prepare_statements (void *cls)
                             ",amount_val"
                             ",amount_frac"
                             ") VALUES "
-                            "($1,$2,$3,$4,$5,$6);",
-                            6),
+                            "($1,$2,$3,$4,$5,$6);"),
     GNUNET_PQ_make_prepare ("payment_done",
                             "UPDATE payments "
                             "SET"
@@ -138,23 +136,20 @@ prepare_statements (void *cls)
                             " AND"
                             "  account_pub=$2"
                             " AND"
-                            "  paid=FALSE;",
-                            2),
+                            "  paid=FALSE;"),
     GNUNET_PQ_make_prepare ("account_update",
                             "UPDATE accounts "
                             "SET"
                             " expiration_date=$1 "
                             "WHERE"
-                            " account_pub=$2;",
-                            2),
+                            " account_pub=$2;"),
     GNUNET_PQ_make_prepare ("account_select",
                             "SELECT"
                             " expiration_date "
                             "FROM"
                             " accounts "
                             "WHERE"
-                            " account_pub=$1;",
-                            1),
+                            " account_pub=$1;"),
     GNUNET_PQ_make_prepare ("payments_select",
                             "SELECT"
                             " account_pub"
@@ -162,8 +157,7 @@ prepare_statements (void *cls)
                             ",amount_val"
                             ",amount_frac"
                             " FROM payments"
-                            " WHERE paid=FALSE;",
-                            0),
+                            " WHERE paid=FALSE;"),
     GNUNET_PQ_make_prepare ("payments_select_by_account",
                             "SELECT"
                             " timestamp"
@@ -175,20 +169,17 @@ prepare_statements (void *cls)
                             " WHERE"
                             "  paid=FALSE"
                             " AND"
-                            "  account_pub=$1;",
-                            1),
+                            "  account_pub=$1;"),
     GNUNET_PQ_make_prepare ("gc_accounts",
                             "DELETE FROM accounts "
                             "WHERE"
-                            " expiration_date < $1;",
-                            1),
+                            " expiration_date < $1;"),
     GNUNET_PQ_make_prepare ("gc_pending_payments",
                             "DELETE FROM payments "
                             "WHERE"
                             "  paid=FALSE"
                             " AND"
-                            "  timestamp < $1;",
-                            1),
+                            "  timestamp < $1;"),
     GNUNET_PQ_make_prepare ("backup_insert",
                             "INSERT INTO backups "
                             "(account_pub"
@@ -197,8 +188,7 @@ prepare_statements (void *cls)
                             ",backup_hash"
                             ",data"
                             ") VALUES "
-                            "($1,$2,$3,$4,$5);",
-                            5),
+                            "($1,$2,$3,$4,$5);"),
     GNUNET_PQ_make_prepare ("backup_update",
                             "UPDATE backups "
                             " SET"
@@ -209,16 +199,14 @@ prepare_statements (void *cls)
                             " WHERE"
                             "   account_pub=$5"
                             "  AND"
-                            "   backup_hash=$6;",
-                            6),
+                            "   backup_hash=$6;"),
     GNUNET_PQ_make_prepare ("backup_select_hash",
                             "SELECT "
                             " backup_hash "
                             "FROM"
                             " backups "
                             "WHERE"
-                            " account_pub=$1;",
-                            1),
+                            " account_pub=$1;"),
     GNUNET_PQ_make_prepare ("backup_select",
                             "SELECT "
                             " account_sig"
@@ -228,11 +216,9 @@ prepare_statements (void *cls)
                             "FROM"
                             " backups "
                             "WHERE"
-                            " account_pub=$1;",
-                            1),
+                            " account_pub=$1;"),
     GNUNET_PQ_make_prepare ("do_commit",
-                            "COMMIT",
-                            0),
+                            "COMMIT"),
     GNUNET_PQ_PREPARED_STATEMENT_END
   };
   enum GNUNET_GenericReturnValue ret;
