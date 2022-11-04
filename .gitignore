@@ -57,3 +57,4 @@ sync_config.h
 sync_config.h.in
 src/sync/sync-httpd
 src/testing/test_sync_api_home/.local/share/taler/auditors/
+src/testing/test_sync_api_home/.local/share/taler/exchange-secmod-cs/

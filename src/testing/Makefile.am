@@ -41,7 +41,7 @@ TESTS = \
 EXTRA_DIST = \
   test_sync_api.conf \
   test_sync_api_home/.config/taler/exchange/account-2.json \
-  test_sync_api_home/.local/share/taler/exchange/offline-keys/master.priv
+  test_sync_api_home/.local/share/taler/exchange-offline/master.priv
 
 test_sync_api_SOURCES = \
   test_sync_api.c
