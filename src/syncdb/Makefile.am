@@ -87,4 +87,5 @@ TESTS = \
 
 EXTRA_DIST = \
   $(pkgcfg_DATA) \
+  $(sql_DATA) \
   test_sync_db_postgres.conf
