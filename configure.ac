@@ -90,11 +90,8 @@ AS_CASE([$with_gnunet],
         [no], [AC_MSG_ERROR([--with-gnunet is required])],
         [LDFLAGS="-L$with_gnunet/lib $LDFLAGS"
          CPPFLAGS="-I$with_gnunet/include $CPPFLAGS"])
-AC_CHECK_HEADERS([gnunet/platform.h gnunet/gnunet_util_lib.h],
- [AC_CHECK_LIB([gnunetutil], [GNUNET_SCHEDULER_run], libgnunetutil=1)],
-  [], [#ifdef HAVE_GNUNET_PLATFORM_H
-        #include <gnunet/platform.h>
-       #endif])
+AC_CHECK_HEADERS([gnunet/gnunet_util_lib.h],
+ [AC_CHECK_LIB([gnunetutil], [GNUNET_SCHEDULER_run], libgnunetutil=1)])
 AS_IF([test $libgnunetutil != 1],
   [AC_MSG_ERROR([[
 ***
@@ -133,10 +130,7 @@ CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
 AC_CHECK_HEADERS([gnunet/gnunet_pq_lib.h],
- [AC_CHECK_LIB([gnunetpq], [GNUNET_PQ_connect_with_cfg], libgnunetpq=1)],
-   [], [#ifdef HAVE_GNUNET_PLATFORM_H
-        #include <gnunet/platform.h>
-       #endif])
+ [AC_CHECK_LIB([gnunetpq], [GNUNET_PQ_connect_with_cfg], libgnunetpq=1)])
 AM_CONDITIONAL(HAVE_GNUNETPQ, test x$libgnunetpq = x1)
 
 
@@ -235,10 +229,7 @@ AS_CASE([$with_twister],
          CPPFLAGS="-I$with_twister/include $CPPFLAGS"])
 
 AC_CHECK_HEADERS([taler/taler_twister_testing_lib.h],
- [AC_CHECK_LIB([talertwistertesting], [TALER_TESTING_run_twister], twistertesting=1,, [-ltalerexchange -ltalerbank])],
-   [], [#ifdef HAVE_GNUNET_PLATFORM_H
-        #include <gnunet/platform.h>
-       #endif])
+ [AC_CHECK_LIB([talertwistertesting], [TALER_TESTING_run_twister], twistertesting=1,, [-ltalerexchange -ltalerbank])])
 AM_CONDITIONAL(HAVE_TWISTER, test x$twistertesting = x1)
 
 # gcov compilation
