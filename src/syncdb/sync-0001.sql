@@ -20,6 +20,11 @@ BEGIN;
 -- Check patch versioning is in place.
 SELECT _v.register_patch('sync-0001', NULL, NULL);
 
+CREATE SCHEMA sync;
+COMMENT ON SCHEMA sync IS 'sync data';
+
+SET search_path TO sync;
+
 CREATE TABLE IF NOT EXISTS accounts
   (account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32)
   ,expiration_date INT8 NOT NULL);

@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  (C) 2014--2021 Taler Systems SA
+  (C) 2014--2022 Taler Systems SA
 
   TALER is free software; you can redistribute it and/or modify it under the
   terms of the GNU Lesser General Public License as published by the Free Software
@@ -259,10 +259,14 @@ internal_setup (struct PostgresClosure *pg,
         "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL SERIALIZABLE;"),
       GNUNET_PQ_make_try_execute ("SET enable_sort=OFF;"),
       GNUNET_PQ_make_try_execute ("SET enable_seqscan=OFF;"),
+      GNUNET_PQ_make_execute ("SET search_path TO sync;"),
       GNUNET_PQ_EXECUTE_STATEMENT_END
     };
 #else
-    struct GNUNET_PQ_ExecuteStatement *es = NULL;
+    struct GNUNET_PQ_ExecuteStatement es[] = {
+      GNUNET_PQ_make_execute ("SET search_path TO sync;"),
+      GNUNET_PQ_EXECUTE_STATEMENT_END
+    };
 #endif
     struct GNUNET_PQ_Context *db_conn;
 
@@ -1258,11 +1262,15 @@ postgres_create_tables (void *cls)
 {
   struct PostgresClosure *pc = cls;
   struct GNUNET_PQ_Context *conn;
+  struct GNUNET_PQ_ExecuteStatement es[] = {
+    GNUNET_PQ_make_execute ("SET search_path TO sync;"),
+    GNUNET_PQ_EXECUTE_STATEMENT_END
+  };
 
   conn = GNUNET_PQ_connect_with_cfg (pc->cfg,
                                      "syncdb-postgres",
                                      "sync-",
-                                     NULL,
+                                     es,
                                      NULL);
   if (NULL == conn)
     return GNUNET_SYSERR;
