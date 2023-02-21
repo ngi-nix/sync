@@ -1,3 +1,9 @@
+sync (0.9.2) unstable; urgency=low
+
+  * Packaging latest release.
+
+ -- Christian Grothoff <grothoff@gnu.org>  Tue, 21 Feb 2023 13:50:12 +0200
+
 sync (0.9.1) unstable; urgency=low
 
   * Packaging latest release.
