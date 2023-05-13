@@ -4,7 +4,9 @@ Description=Sync backup backend
 [Service]
 User=sync-httpd
 Type=simple
-Restart=on-failure
+Restart=always
+RestartSec=1s
+RuntimeMaxSec=3600s
 ExecStart=/usr/bin/sync-httpd -c /etc/sync/sync.conf
 
 [Install]

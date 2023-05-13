@@ -194,14 +194,13 @@ url_handler (void *cls,
     &SH_MHD_handler_static_response, MHD_HTTP_NOT_FOUND
   };
 
-  struct TM_HandlerContext *hc;
+  struct TM_HandlerContext *hc = *con_cls;
   struct GNUNET_AsyncScopeId aid;
   const char *correlation_id = NULL;
   struct SYNC_AccountPublicKeyP account_pub;
 
   (void) cls;
   (void) version;
-  hc = *con_cls;
   if (NULL == hc)
   {
     GNUNET_async_scope_fresh (&aid);
@@ -543,10 +542,6 @@ run (void *cls,
   result = EXIT_NOTCONFIGURED;
   GNUNET_SCHEDULER_add_shutdown (&do_shutdown,
                                  NULL);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_log_setup ("sync-httpd",
-                                   "WARNING",
-                                   NULL));
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (config,
                                              "sync",
