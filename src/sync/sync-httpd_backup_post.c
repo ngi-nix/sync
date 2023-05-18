@@ -449,8 +449,8 @@ check_payment_cb (void *cls,
   GNUNET_assert (MHD_HTTP_OK == hr->http_status);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Payment status checked: %d\n",
-              osr->details.success.status);
-  switch (osr->details.success.status)
+              osr->details.ok.status);
+  switch (osr->details.ok.status)
   {
   case TALER_MERCHANT_OSC_PAID:
     {
