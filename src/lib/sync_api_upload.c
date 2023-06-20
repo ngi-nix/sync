@@ -92,44 +92,40 @@ handle_upload_finished (void *cls,
                         size_t data_size)
 {
   struct SYNC_UploadOperation *uo = cls;
-  enum TALER_ErrorCode ec = TALER_EC_INVALID;
-  struct SYNC_UploadDetails ud;
-  struct SYNC_UploadDetails *udp;
+  struct SYNC_UploadDetails ud = {
+    .http_status = (unsigned int) response_code,
+    .ec = TALER_EC_INVALID
+  };
 
   uo->job = NULL;
-  udp = NULL;
-  memset (&ud, 0, sizeof (ud));
   switch (response_code)
   {
   case 0:
     break;
   case MHD_HTTP_NO_CONTENT:
     ud.us = SYNC_US_SUCCESS;
-    ud.details.curr_backup_hash = &uo->new_upload_hash;
-    udp = &ud;
-    ec = TALER_EC_NONE;
+    ud.details.success.curr_backup_hash = &uo->new_upload_hash;
+    ud.ec = TALER_EC_NONE;
     break;
   case MHD_HTTP_NOT_MODIFIED:
     ud.us = SYNC_US_SUCCESS;
-    ud.details.curr_backup_hash = &uo->new_upload_hash;
-    udp = &ud;
-    ec = TALER_EC_NONE;
+    ud.details.not_modified.curr_backup_hash = &uo->new_upload_hash;
+    ud.ec = TALER_EC_NONE;
     break;
   case MHD_HTTP_BAD_REQUEST:
     GNUNET_break (0);
-    ec = TALER_JSON_get_error_code2 (data,
-                                     data_size);
+    ud.ec = TALER_JSON_get_error_code2 (data,
+                                        data_size);
     break;
   case MHD_HTTP_PAYMENT_REQUIRED:
     ud.us = SYNC_US_PAYMENT_REQUIRED;
-    ud.details.payment_request = uo->pay_uri;
-    udp = &ud;
-    ec = TALER_EC_NONE;
+    ud.details.payment_required.payment_request = uo->pay_uri;
+    ud.ec = TALER_EC_NONE;
     break;
   case MHD_HTTP_FORBIDDEN:
     GNUNET_break (0);
-    ec = TALER_JSON_get_error_code2 (data,
-                                     data_size);
+    ud.ec = TALER_JSON_get_error_code2 (data,
+                                        data_size);
     break;
   case MHD_HTTP_CONFLICT:
     ud.us = SYNC_US_CONFLICTING_BACKUP;
@@ -140,23 +136,22 @@ handle_upload_finished (void *cls,
       = data_size;
     ud.details.recovered_backup.existing_backup
       = data;
-    udp = &ud;
-    ec = TALER_EC_NONE;
+    ud.ec = TALER_EC_NONE;
     break;
   case MHD_HTTP_GONE:
-    ec = TALER_JSON_get_error_code2 (data,
-                                     data_size);
+    ud.ec = TALER_JSON_get_error_code2 (data,
+                                        data_size);
     break;
   case MHD_HTTP_LENGTH_REQUIRED:
     GNUNET_break (0);
     break;
   case MHD_HTTP_REQUEST_ENTITY_TOO_LARGE:
-    ec = TALER_JSON_get_error_code2 (data,
-                                     data_size);
+    ud.ec = TALER_JSON_get_error_code2 (data,
+                                        data_size);
     break;
   case MHD_HTTP_TOO_MANY_REQUESTS:
-    ec = TALER_JSON_get_error_code2 (data,
-                                     data_size);
+    ud.ec = TALER_JSON_get_error_code2 (data,
+                                        data_size);
     break;
   case MHD_HTTP_INTERNAL_SERVER_ERROR:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -168,9 +163,7 @@ handle_upload_finished (void *cls,
   if (NULL != uo->cb)
   {
     uo->cb (uo->cb_cls,
-            ec,
-            response_code,
-            udp);
+            &ud);
     uo->cb = NULL;
   }
   SYNC_upload_cancel (uo);

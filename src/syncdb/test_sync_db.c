@@ -274,7 +274,9 @@ main (int argc,
     GNUNET_break (0);
     return EXIT_FAILURE;
   }
-  GNUNET_log_setup (argv[0], "DEBUG", NULL);
+  GNUNET_log_setup (argv[0],
+                    "DEBUG",
+                    NULL);
   (void) TALER_project_data_default ();
   GNUNET_OS_init (SYNC_project_data_default ());
   plugin_name++;

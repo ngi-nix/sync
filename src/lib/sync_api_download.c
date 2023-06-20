@@ -100,6 +100,9 @@ handle_download_finished (void *cls,
                           size_t data_size)
 {
   struct SYNC_DownloadOperation *download = cls;
+  struct SYNC_DownloadDetails dd = {
+    .http_status = (unsigned int) response_code
+  };
 
   download->job = NULL;
   switch (response_code)
@@ -108,7 +111,6 @@ handle_download_finished (void *cls,
     break;
   case MHD_HTTP_OK:
     {
-      struct SYNC_DownloadDetails dd;
       struct SYNC_UploadSignaturePS usp = {
         .purpose.purpose = htonl (TALER_SIGNATURE_SYNC_BACKUP_UPLOAD),
         .purpose.size = htonl (sizeof (usp)),
@@ -125,18 +127,16 @@ handle_download_finished (void *cls,
                                       &download->account_pub.eddsa_pub))
       {
         GNUNET_break_op (0);
-        response_code = 0;
+        dd.http_status = 0;
         break;
       }
       /* Success, call callback with all details! */
-      memset (&dd, 0, sizeof (dd));
-      dd.sig = download->account_sig;
-      dd.prev_backup_hash = download->sync_previous;
-      dd.curr_backup_hash = usp.new_backup_hash;
-      dd.backup = data;
-      dd.backup_size = data_size;
+      dd.details.ok.sig = download->account_sig;
+      dd.details.ok.prev_backup_hash = download->sync_previous;
+      dd.details.ok.curr_backup_hash = usp.new_backup_hash;
+      dd.details.ok.backup = data;
+      dd.details.ok.backup_size = data_size;
       download->cb (download->cb_cls,
-                    response_code,
                     &dd);
       download->cb = NULL;
       SYNC_download_cancel (download);
@@ -159,14 +159,13 @@ handle_download_finished (void *cls,
                 "Unexpected response code %u\n",
                 (unsigned int) response_code);
     GNUNET_break (0);
-    response_code = 0;
+    dd.http_status = 0;
     break;
   }
   if (NULL != download->cb)
   {
     download->cb (download->cb_cls,
-                  response_code,
-                  NULL);
+                  &dd);
     download->cb = NULL;
   }
   SYNC_download_cancel (download);

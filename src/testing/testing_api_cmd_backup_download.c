@@ -80,40 +80,32 @@ struct BackupDownloadState
  * Function called with the results of a #SYNC_download().
  *
  * @param cls closure
- * @param http_status HTTP status of the request
- * @param ud details about the download operation
+ * @param dd details about the download operation
  */
 static void
 backup_download_cb (void *cls,
-                    unsigned int http_status,
                     const struct SYNC_DownloadDetails *dd)
 {
   struct BackupDownloadState *bds = cls;
 
   bds->download = NULL;
-  if (http_status != bds->http_status)
+  if (dd->http_status != bds->http_status)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unexpected response code %u to command %s in %s:%u\n",
-                http_status,
-                bds->is->commands[bds->is->ip].label,
-                __FILE__,
-                __LINE__);
-    TALER_TESTING_interpreter_fail (bds->is);
-    return;
+    TALER_TESTING_unexpected_status (bds->is,
+                                     dd->http_status);
   }
   if (NULL != bds->upload_reference)
   {
-    if ( (MHD_HTTP_OK == http_status) &&
-         (0 != GNUNET_memcmp (&dd->curr_backup_hash,
+    if ( (MHD_HTTP_OK == dd->http_status) &&
+         (0 != GNUNET_memcmp (&dd->details.ok.curr_backup_hash,
                               bds->upload_hash)) )
     {
       GNUNET_break (0);
       TALER_TESTING_interpreter_fail (bds->is);
       return;
     }
-    if ( (MHD_HTTP_OK == http_status) &&
-         (0 != GNUNET_memcmp (&dd->prev_backup_hash,
+    if ( (MHD_HTTP_OK == dd->http_status) &&
+         (0 != GNUNET_memcmp (&dd->details.ok.prev_backup_hash,
                               bds->prev_upload_hash)) )
     {
       GNUNET_break (0);
@@ -183,7 +175,7 @@ backup_download_run (void *cls,
     }
     bds->sync_pub = *sync_pub;
   }
-  bds->download = SYNC_download (is->ctx,
+  bds->download = SYNC_download (TALER_TESTING_interpreter_get_context (is),
                                  bds->sync_url,
                                  &bds->sync_pub,
                                  &backup_download_cb,

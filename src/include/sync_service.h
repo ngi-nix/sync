@@ -1,6 +1,6 @@
 /*
   This file is part of TALER
-  Copyright (C) 2019 Taler Systems SA
+  Copyright (C) 2019-2023 Taler Systems SA
 
   Anastasis is free software; you can redistribute it and/or modify it under the
   terms of the GNU Affero General Public License as published by the Free Software
@@ -138,19 +138,53 @@ enum SYNC_UploadStatus
  */
 struct SYNC_UploadDetails
 {
+
+  /**
+   * Taler error code.
+   */
+  enum TALER_ErrorCode ec;
+
+  /**
+   * HTTP status of the request.
+   */
+  unsigned int http_status;
+
   /**
    * High level status of the upload operation.
    */
   enum SYNC_UploadStatus us;
 
+  /**
+   * Details depending on @e us.
+   */
   union
   {
 
     /**
-     * Hash of the synchronized backup, returned if
-     * @e us is #SYNC_US_SUCCESS.
+     * Data returned if @e us is #SYNC_US_SUCCESS.
      */
-    const struct GNUNET_HashCode *curr_backup_hash;
+    struct
+    {
+
+      /**
+       * Hash of the synchronized backup.
+       */
+      const struct GNUNET_HashCode *curr_backup_hash;
+
+    } success;
+
+    /**
+     * Data returned if @e us is #SYNC_US_NOT_MODIFIED.
+     */
+    struct
+    {
+
+      /**
+       * Hash of the synchronized backup.
+       */
+      const struct GNUNET_HashCode *curr_backup_hash;
+
+    } not_modified;
 
     /**
      * Previous backup. Returned if @e us is
@@ -177,11 +211,15 @@ struct SYNC_UploadDetails
 
     } recovered_backup;
 
-    /**
-     * A taler://pay/-URI with a request to pay the annual fee for
-     * the service.  Returned if @e us is #SYNC_US_PAYMENT_REQUIRED.
-     */
-    const char *payment_request;
+    struct
+    {
+      /**
+       * A taler://pay/-URI with a request to pay the annual fee for
+       * the service.  Returned if @e us is #SYNC_US_PAYMENT_REQUIRED.
+       */
+      const char *payment_request;
+
+    } payment_required;
 
   } details;
 
@@ -192,14 +230,10 @@ struct SYNC_UploadDetails
  * Function called with the results of a #SYNC_upload().
  *
  * @param cls closure
- * @param ec Taler error code
- * @param http_status HTTP status of the request
  * @param ud details about the upload operation
  */
 typedef void
 (*SYNC_UploadCallback)(void *cls,
-                       enum TALER_ErrorCode ec,
-                       unsigned int http_status,
                        const struct SYNC_UploadDetails *ud);
 
 
@@ -291,50 +325,63 @@ SYNC_upload_cancel (struct SYNC_UploadOperation *uo);
  */
 struct SYNC_DownloadDetails
 {
-  /**
-   * Signature (already verified).
-   */
-  struct SYNC_AccountSignatureP sig;
 
   /**
-   * Hash of the previous version.
+   * HTTP status code.
    */
-  struct GNUNET_HashCode prev_backup_hash;
+  unsigned int http_status;
 
   /**
-   * Hash over @e backup and @e backup_size.
+   * Details depending on @e http_status.
    */
-  struct GNUNET_HashCode curr_backup_hash;
+  union
+  {
 
-  /**
-   * The backup we downloaded.
-   */
-  const void *backup;
+    /**
+     * Details if status is #MHD_HTTP_OK.
+     */
+    struct
+    {
 
-  /**
-   * Number of bytes in @e backup.
-   */
-  size_t backup_size;
+      /**
+       * Signature (already verified).
+       */
+      struct SYNC_AccountSignatureP sig;
+
+      /**
+       * Hash of the previous version.
+       */
+      struct GNUNET_HashCode prev_backup_hash;
+
+      /**
+       * Hash over @e backup and @e backup_size.
+       */
+      struct GNUNET_HashCode curr_backup_hash;
+
+      /**
+       * The backup we downloaded.
+       */
+      const void *backup;
+
+      /**
+       * Number of bytes in @e backup.
+       */
+      size_t backup_size;
+    } ok;
+
+  } details;
 
 };
+
 
 /**
  * Function called with the results of a #SYNC_download().
  *
  * @param cls closure
- * @param sig signature of the account owner, affirming the
- *            integrity of the backup (already verified)
- * @param prev_backup_hash hash of the previous backup (used
- *            to verify the signature, could be used by clients
- *            to verify backup chains)
- * @param curr_backup_hash hash over @a backup (verified)
- * @param backup_size number of bytes in @a backup
- * @param backup the latest backup as downloaded from the
- *        server and affirmed by @a sig
+ * @param dd download details
  */
 typedef void
 (*SYNC_DownloadCallback)(void *cls,
-                         unsigned int http_status,
                          const struct SYNC_DownloadDetails *dd);
 
 
