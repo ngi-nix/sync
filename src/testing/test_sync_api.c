@@ -80,32 +80,17 @@ static char *merchant_payto;
 /**
  * Configuration of the bank.
  */
-static struct TALER_TESTING_BankConfiguration bc;
-
-/**
- * Configuration of the exchange.
- */
-static struct TALER_TESTING_ExchangeConfiguration ec;
+static struct TALER_TESTING_Credentials cred;
 
 /**
  * Merchant base URL.
  */
-static char *merchant_url;
+static const char *merchant_url = "http://localhost:8080/";
 
 /**
  * Sync base URL.
  */
-static char *sync_url;
-
-/**
- * Merchant process.
- */
-static struct GNUNET_OS_Process *merchantd;
-
-/**
- * Sync-httpd process.
- */
-static struct GNUNET_OS_Process *syncd;
+static const char *sync_url = "http://localhost:8084/";
 
 
 /**
@@ -136,7 +121,7 @@ cmd_transfer_to_exchange (const char *label,
 {
   return TALER_TESTING_cmd_admin_add_incoming (label,
                                                amount,
-                                               &bc.exchange_auth,
+                                               &cred.ba,
                                                payer_payto);
 }
 
@@ -152,22 +137,19 @@ run (void *cls,
      struct TALER_TESTING_Interpreter *is)
 {
   struct TALER_TESTING_Command commands[] = {
-    /* general setup */
-    TALER_TESTING_cmd_auditor_add ("add-auditor-OK",
-                                   MHD_HTTP_NO_CONTENT,
-                                   false),
-    TALER_TESTING_cmd_wire_add ("add-wire-account",
-                                "payto://x-taler-bank/localhost/2",
-                                MHD_HTTP_NO_CONTENT,
-                                false),
-    TALER_TESTING_cmd_exec_offline_sign_keys ("offline-sign-future-keys",
-                                              CONFIG_FILE),
-    TALER_TESTING_cmd_exec_offline_sign_fees ("offline-sign-fees",
-                                              CONFIG_FILE,
-                                              "EUR:0.01",
-                                              "EUR:0.01"),
-    TALER_TESTING_cmd_check_keys_pull_all_keys ("refetch /keys",
-                                                1),
+    TALER_TESTING_cmd_run_fakebank ("run-fakebank",
+                                    cred.cfg,
+                                    "exchange-account-exchange"),
+    TALER_TESTING_cmd_system_start ("start-taler",
+                                    CONFIG_FILE,
+                                    "-emb",
+                                    "-u", "exchange-account-exchange",
+                                    NULL),
+    TALER_TESTING_cmd_get_exchange ("get-exchange",
+                                    cred.cfg,
+                                    true,
+                                    true),
+    TALER_TESTING_cmd_check_keys_pull_all_keys ("refetch /keys"),
     TALER_TESTING_cmd_merchant_post_instances ("instance-create-default",
                                                merchant_url,
                                                "default",
@@ -272,9 +254,8 @@ run (void *cls,
     TALER_TESTING_cmd_end ()
   };
 
-  TALER_TESTING_run_with_fakebank (is,
-                                   commands,
-                                   bc.exchange_auth.wire_gateway_url);
+  TALER_TESTING_run (is,
+                     commands);
 }
 
 
@@ -282,76 +263,23 @@ int
 main (int argc,
       char *const *argv)
 {
-  unsigned int ret;
-  /* These environment variables get in the way... */
-  unsetenv ("XDG_DATA_HOME");
-  unsetenv ("XDG_CONFIG_HOME");
-
-  GNUNET_log_setup ("test-sync-api",
-                    "DEBUG",
-                    NULL);
-  if (GNUNET_OK !=
-      TALER_TESTING_prepare_fakebank (CONFIG_FILE,
-                                      "exchange-account-exchange",
-                                      &bc))
-    return 77;
-  payer_payto = ("payto://x-taler-bank/localhost/" USER_ACCOUNT_NAME);
-  exchange_payto = ("payto://x-taler-bank/localhost/" EXCHANGE_ACCOUNT_NAME);
-  merchant_payto = ("payto://x-taler-bank/localhost/" MERCHANT_ACCOUNT_NAME);
-  if (NULL ==
-      (merchant_url = TALER_TESTING_prepare_merchant (CONFIG_FILE)))
-    return 77;
-  TALER_TESTING_cleanup_files (CONFIG_FILE);
-
-  if (NULL ==
-      (sync_url = SYNC_TESTING_prepare_sync (CONFIG_FILE)))
-    return 77;
-
-  TALER_TESTING_cleanup_files (CONFIG_FILE);
-
-  switch (TALER_TESTING_prepare_exchange (CONFIG_FILE,
-                                          GNUNET_YES,
-                                          &ec))
-  {
-  case GNUNET_SYSERR:
-    GNUNET_break (0);
-    return 1;
-  case GNUNET_NO:
-    return 77;
-
-  case GNUNET_OK:
-
-    if (NULL == (merchantd =
-                   TALER_TESTING_run_merchant (CONFIG_FILE,
-                                               merchant_url)))
-      return 1;
-
-    if (NULL == (syncd =
-                   SYNC_TESTING_run_sync (CONFIG_FILE,
-                                          sync_url)))
-      return 1;
-
-    ret = TALER_TESTING_setup_with_exchange (&run,
-                                             NULL,
-                                             CONFIG_FILE);
-
-    GNUNET_OS_process_kill (merchantd, SIGTERM);
-    GNUNET_OS_process_kill (syncd, SIGTERM);
-    GNUNET_OS_process_wait (merchantd);
-    GNUNET_OS_process_wait (syncd);
-    GNUNET_OS_process_destroy (merchantd);
-    GNUNET_OS_process_destroy (syncd);
-    GNUNET_free (merchant_url);
-    GNUNET_free (sync_url);
-
-    if (GNUNET_OK != ret)
-      return 1;
-    break;
-  default:
-    GNUNET_break (0);
-    return 1;
-  }
-  return 0;
+  (void) argc;
+  payer_payto =
+    "payto://x-taler-bank/localhost/" USER_ACCOUNT_NAME "?receiver-name=user";
+  exchange_payto =
+    "payto://x-taler-bank/localhost/" EXCHANGE_ACCOUNT_NAME
+    "?receiver-name=exchange";
+  merchant_payto =
+    "payto://x-taler-bank/localhost/" MERCHANT_ACCOUNT_NAME
+    "?receiver-name=merchant";
+  return TALER_TESTING_main (argv,
+                             "DEBUG",
+                             CONFIG_FILE,
+                             "exchange-account-exchange",
+                             TALER_TESTING_BS_FAKEBANK,
+                             &cred,
+                             &run,
+                             NULL);
 }
 
 
