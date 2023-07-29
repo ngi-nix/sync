@@ -593,9 +593,9 @@ payment_by_account_cb (void *cls,
                                     &order_id),
       GNUNET_PQ_result_spec_auto_from_type ("token",
                                             &token),
-      TALER_PQ_result_spec_amount ("amount",
-                                   pic->pg->currency,
-                                   &amount),
+      TALER_PQ_result_spec_amount_tuple ("amount",
+                                         pic->pg->currency,
+                                         &amount),
       GNUNET_PQ_result_spec_end
     };
 
@@ -710,7 +710,6 @@ postgres_store_backup (void *cls,
     GNUNET_break (0);
     return SYNC_DB_SOFT_ERROR;
   case GNUNET_DB_STATUS_SUCCESS_NO_RESULTS:
-    GNUNET_break (0);
     return SYNC_DB_NO_RESULTS;
   case GNUNET_DB_STATUS_SUCCESS_ONE_RESULT:
     return SYNC_DB_ONE_RESULT;
