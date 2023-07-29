@@ -1,6 +1,6 @@
 --
 -- This file is part of TALER
--- Copyright (C) 2021 Taler Systems SA
+-- Copyright (C) 2021, 2023 Taler Systems SA
 --
 -- TALER is free software; you can redistribute it and/or modify it under the
 -- terms of the GNU General Public License as published by the Free Software
@@ -25,6 +25,14 @@ COMMENT ON SCHEMA sync IS 'sync data';
 
 SET search_path TO sync;
 
+CREATE TYPE taler_amount
+  AS
+  (val INT8
+  ,frac INT4
+  );
+COMMENT ON TYPE taler_amount
+  IS 'Stores an amount, fraction is in units of 1/100000000 of the base value';
+
 CREATE TABLE IF NOT EXISTS accounts
   (account_pub BYTEA PRIMARY KEY CHECK (length(account_pub)=32)
   ,expiration_date INT8 NOT NULL);
@@ -38,8 +46,7 @@ CREATE TABLE IF NOT EXISTS payments
   ,order_id VARCHAR PRIMARY KEY
   ,token BYTEA CHECK (length(token)=16)
   ,timestamp INT8 NOT NULL
-  ,amount_val INT8 NOT NULL
-  ,amount_frac INT4 NOT NULL
+  ,amount taler_amount NOT NULL
   ,paid BOOLEAN NOT NULL DEFAULT FALSE);
 
 CREATE INDEX IF NOT EXISTS payments_timestamp ON

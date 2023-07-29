@@ -123,10 +123,9 @@ prepare_statements (void *cls)
                             ",order_id"
                             ",token"
                             ",timestamp"
-                            ",amount_val"
-                            ",amount_frac"
+                            ",amount"
                             ") VALUES "
-                            "($1,$2,$3,$4,$5,$6);"),
+                            "($1,$2,$3,$4,$5);"),
     GNUNET_PQ_make_prepare ("payment_done",
                             "UPDATE payments "
                             "SET"
@@ -154,8 +153,7 @@ prepare_statements (void *cls)
                             "SELECT"
                             " account_pub"
                             ",order_id"
-                            ",amount_val"
-                            ",amount_frac"
+                            ",amount"
                             " FROM payments"
                             " WHERE paid=FALSE;"),
     GNUNET_PQ_make_prepare ("payments_select_by_account",
@@ -163,8 +161,7 @@ prepare_statements (void *cls)
                             " timestamp"
                             ",order_id"
                             ",token"
-                            ",amount_val"
-                            ",amount_frac"
+                            ",amount"
                             " FROM payments"
                             " WHERE"
                             "  paid=FALSE"
@@ -505,7 +502,8 @@ postgres_store_payment (void *cls,
     GNUNET_PQ_query_param_string (order_id),
     GNUNET_PQ_query_param_auto_from_type (&tok),
     GNUNET_PQ_query_param_timestamp (&now),
-    TALER_PQ_query_param_amount (amount),
+    TALER_PQ_query_param_amount_tuple (pg->conn,
+                                       amount),
     GNUNET_PQ_query_param_end
   };
 
