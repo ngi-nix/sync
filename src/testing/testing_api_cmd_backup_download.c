@@ -92,7 +92,8 @@ backup_download_cb (void *cls,
   if (dd->http_status != bds->http_status)
   {
     TALER_TESTING_unexpected_status (bds->is,
-                                     dd->http_status);
+                                     dd->http_status,
+                                     bds->http_status);
   }
   if (NULL != bds->upload_reference)
   {

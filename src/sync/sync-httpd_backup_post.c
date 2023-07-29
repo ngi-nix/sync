@@ -540,6 +540,7 @@ static MHD_RESULT
 begin_payment (struct BackupContext *bc,
                int pay_req)
 {
+  static const char *no_uuids[1] = { NULL };
   json_t *order;
 
   if (! bc->force_fresh_order)
@@ -597,7 +598,7 @@ begin_payment (struct BackupContext *bc,
                                         0,
                                         NULL, /* no inventory products */
                                         0,
-                                        NULL, /* no uuids */
+                                        no_uuids, /* no uuids */
                                         false, /* do NOT require claim token */
                                         &proposal_cb,
                                         bc);

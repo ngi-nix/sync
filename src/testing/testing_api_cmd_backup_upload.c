@@ -138,7 +138,8 @@ backup_upload_cb (void *cls,
   if (ud->http_status != bus->http_status)
   {
     TALER_TESTING_unexpected_status (bus->is,
-                                     ud->http_status);
+                                     ud->http_status,
+                                     bus->http_status);
   }
   switch (ud->us)
   {
