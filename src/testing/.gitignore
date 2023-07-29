@@ -13,3 +13,4 @@ test_sync_api_home/.local/share/taler/exchange/offline-keys/secm_tofus.pub
 test_sync_api_home/.local/share/taler/taler-exchange-secmod-eddsa/
 test_sync_api_home/.local/share/taler/taler-exchange-secmod-rsa/
 
+test_sync_api.conf.edited
