@@ -502,8 +502,8 @@ postgres_store_payment (void *cls,
     GNUNET_PQ_query_param_string (order_id),
     GNUNET_PQ_query_param_auto_from_type (&tok),
     GNUNET_PQ_query_param_timestamp (&now),
-    TALER_PQ_query_param_amount_tuple (pg->conn,
-                                       amount),
+    TALER_PQ_query_param_amount (pg->conn,
+                                 amount),
     GNUNET_PQ_query_param_end
   };
 
@@ -593,9 +593,9 @@ payment_by_account_cb (void *cls,
                                     &order_id),
       GNUNET_PQ_result_spec_auto_from_type ("token",
                                             &token),
-      TALER_PQ_result_spec_amount_tuple ("amount",
-                                         pic->pg->currency,
-                                         &amount),
+      TALER_PQ_result_spec_amount ("amount",
+                                   pic->pg->currency,
+                                   &amount),
       GNUNET_PQ_result_spec_end
     };
 
