@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS accounts_expire ON
 
 CREATE TABLE IF NOT EXISTS payments
   (account_pub BYTEA CHECK (length(account_pub)=32)
-  ,order_id VARCHAR PRIMARY KEY
+  ,order_id TEXT PRIMARY KEY
   ,token BYTEA CHECK (length(token)=16)
   ,timestamp INT8 NOT NULL
   ,amount taler_amount NOT NULL
