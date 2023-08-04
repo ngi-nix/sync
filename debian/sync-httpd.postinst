@@ -22,11 +22,6 @@ SYNC_HOME="/var/lib/sync/"
 _USERNAME=sync-httpd
 _GROUPNAME=www-data
 
-# Set permissions for sqlite3 file
-# (for when we support sqlite3 in the future)
-dbc_dbfile_owner="${_USERNAME}:${_GROUPNAME}"
-dbc_dbfile_perms="0600"
-
 . /usr/share/debconf/confmodule
 
 case "${1}" in
@@ -40,13 +35,6 @@ configure)
     dpkg-statoverride --add --update \
       sync-httpd root 460 \
       /etc/sync/secrets/sync-db.secret.conf
-  fi
-
-  # Setup postgres database (needs dbconfig-pgsql package)
-  if [ -f /usr/share/dbconfig-common/dpkg/postinst.pgsql ]; then
-    . /usr/share/dbconfig-common/dpkg/postinst.pgsql
-    dbc_pgsql_createdb_encoding="UTF8"
-    dbc_go sync-httpd "$@"
   fi
 
   ;;

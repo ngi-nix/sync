@@ -50,7 +50,6 @@ Depends:
  netbase,
  sudo,
  apache2 | nginx | httpd,
- dbconfig-pgsql | dbconfig-no-thanks,
  ${misc:Depends},
  ${shlibs:Depends}
 Recommends:

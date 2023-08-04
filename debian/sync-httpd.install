@@ -8,5 +8,3 @@ usr/share/man/man1/sync-httpd.1
 
 debian/etc/* /etc/
 
-# Files needed by dbconf
-debian/db/install/* usr/share/dbconfig-common/scripts/sync-httpd/install/
