@@ -329,6 +329,7 @@ AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
 
 AC_CONFIG_FILES([Makefile
+contrib/Makefile
 doc/Makefile
 src/Makefile
 src/include/Makefile

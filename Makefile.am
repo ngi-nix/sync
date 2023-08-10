@@ -8,9 +8,9 @@ else
 endif
 else
 if ENABLE_DOC
-  SUBDIRS = . src doc
+  SUBDIRS = . src doc contrib
 else
-  SUBDIRS = . src doc
+  SUBDIRS = . src doc contrib
 endif
 endif
 
@@ -20,7 +20,4 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = \
  AUTHORS \
  COPYING.AGPL \
- contrib/gnunet.tag \
- contrib/uncrustify.cfg \
- contrib/uncrustify_precommit \
  Doxyfile
