@@ -19,18 +19,6 @@
 # Error checking on
 set -eu
 
-if ! id postgres > /dev/null
-then
-    echo "Could not find 'postgres' user. Please install Postgresql first"
-    exit 1
-fi
-
-if [ "$(id -u)" -ne 0 ]
-then
-    echo "This script must be run as root"
-    exit 1
-fi
-
 RESET_DB=0
 SKIP_DBINIT=0
 DBUSER="sync-httpd"
@@ -66,6 +54,18 @@ while getopts ':hn:rsu:' OPTION; do
         ;;
     esac
 done
+
+if ! id postgres > /dev/null
+then
+    echo "Could not find 'postgres' user. Please install Postgresql first"
+    exit 1
+fi
+
+if [ "$(id -u)" -ne 0 ]
+then
+    echo "This script must be run as root"
+    exit 1
+fi
 
 if [ 0 = "$SKIP_DBINIT" ]
 then
