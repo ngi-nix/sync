@@ -154,7 +154,6 @@ run (void *cls,
                                                merchant_url,
                                                "default",
                                                merchant_payto,
-                                               "EUR",
                                                MHD_HTTP_NO_CONTENT),
 
     /**
