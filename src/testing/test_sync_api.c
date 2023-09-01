@@ -153,8 +153,13 @@ run (void *cls,
     TALER_TESTING_cmd_merchant_post_instances ("instance-create-default",
                                                merchant_url,
                                                "default",
-                                               merchant_payto,
                                                MHD_HTTP_NO_CONTENT),
+    TALER_TESTING_cmd_merchant_post_account (
+      "instance-create-default-account",
+      merchant_url,
+      merchant_payto,
+      NULL, NULL,
+      MHD_HTTP_OK),
 
     /**
      * Move money to the exchange's bank account.
