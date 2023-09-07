@@ -8,9 +8,9 @@ Build-Depends:
  autopoint,
  debhelper-compat (= 12),
  gettext,
- libgnunet-dev (>=0.17.1),
- libtalerexchange-dev (>= 0.8.99),
- libtalermerchant-dev (>= 0.8.99),
+ libgnunet-dev (>=0.20),
+ libtalerexchange-dev (>= 0.9.3),
+ libtalermerchant-dev (>= 0.9.3),
  libpq-dev (>=13.0),
  pkg-config,
  po-debconf,
@@ -42,18 +42,17 @@ Architecture: any
 Pre-Depends:
  ${misc:Pre-Depends}
 Depends:
- libtalerexchange (>= 0.8.99),
- libtalermerchant (>= 0.8.99),
+ libtalerexchange (>= 0.9.3),
+ libtalermerchant (>= 0.9.3),
  libgnutls30 (>= 3.7.1),
  adduser,
  lsb-base,
  netbase,
- sudo,
- apache2 | nginx | httpd,
  ${misc:Depends},
  ${shlibs:Depends}
 Recommends:
- postgresql (>=13.0)
+ postgresql (>=13.0),
+ apache2 | nginx | httpd
 Description: GNU Taler's encrypted backup store.
  .
  A Sync provider enables a GNU Taler wallet to store
@@ -65,9 +64,9 @@ Package: libsync-dev
 Section: libdevel
 Architecture: any
 Depends:
- libtalermerchant-dev (>= 0.8.99),
- libtalerexchange-dev (>= 0.8.99),
- libgnunet-dev (>=0.17.1),
+ libtalermerchant-dev (>= 0.9.3),
+ libtalerexchange-dev (>= 0.9.3),
+ libgnunet-dev (>=0.20),
  ${misc:Depends},
  ${shlibs:Depends}
 Description: libraries to talk to a Sync provider (development).
