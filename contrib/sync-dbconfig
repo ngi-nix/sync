@@ -124,7 +124,7 @@ fi
 if [ 0 = "$SKIP_DBINIT" ]
 then
     echo "Initializing database $DBNAME." 1>&2
-    sudo -i -u "$DBUSER" sync-dbinit
+    sudo -u "$DBUSER" sync-dbinit
 fi
 
 echo "Database configuration finished." 1>&2
