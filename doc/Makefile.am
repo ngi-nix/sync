@@ -4,6 +4,7 @@ SUBDIRS = .
 
 man_MANS = \
   prebuilt/man/sync-config.1 \
+  prebuilt/man/sync-dbconfig.1 \
   prebuilt/man/sync-dbinit.1 \
   prebuilt/man/sync-httpd.1 \
   prebuilt/man/sync.conf.5
