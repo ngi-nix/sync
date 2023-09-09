@@ -31,11 +31,9 @@ configure)
     adduser --quiet --system --ingroup ${_GROUPNAME} --no-create-home --home ${SYNC_HOME} ${_USERNAME}
   fi
 
-  if ! dpkg-statoverride --list /etc/sync/secrets/sync-db.secret.conf >/dev/null 2>&1; then
-    dpkg-statoverride --add --update \
-      sync-httpd root 460 \
-      /etc/sync/secrets/sync-db.secret.conf
-  fi
+  dpkg-statoverride --add --update \
+    sync-httpd root 640 \
+    /etc/sync/secrets/sync-db.secret.conf
 
   ;;
 
