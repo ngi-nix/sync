@@ -3,8 +3,8 @@ usr/lib/*/libsyncdb.so.*
 usr/lib/*/sync/libsync_plugin*.*
 usr/share/sync/sql/*
 usr/share/sync/config.d/*
+usr/share/man/man1/sync-dbconfig.1
 usr/share/man/man1/sync-dbinit.1
 usr/share/man/man1/sync-httpd.1
 
 debian/etc/* /etc/
-
