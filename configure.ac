@@ -47,7 +47,6 @@ AS_IF([test "x$doc_only" != xyes],[
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_CC_C99
 
 # Force some CFLAGS
 CFLAGS="-Wall -Wno-address-of-packed-member $CFLAGS"
