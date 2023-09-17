@@ -770,18 +770,23 @@ SH_backup_post (struct MHD_Connection *connection,
       im = MHD_lookup_connection_value (connection,
                                         MHD_HEADER_KIND,
                                         MHD_HTTP_HEADER_IF_MATCH);
-      if ( (NULL != im) &&
-           (GNUNET_OK !=
-            GNUNET_STRINGS_string_to_data (im,
-                                           strlen (im),
-                                           &bc->old_backup_hash,
-                                           sizeof (bc->old_backup_hash))) )
+      if (NULL != im)
       {
-        GNUNET_break_op (0);
-        return TALER_MHD_reply_with_error (connection,
-                                           MHD_HTTP_BAD_REQUEST,
-                                           TALER_EC_SYNC_BAD_IF_MATCH,
-                                           NULL);
+        if ( (2 >= strlen (im)) ||
+             ('"' != im[0]) ||
+             ('"' != im[strlen (im) - 1]) ||
+             (GNUNET_OK !=
+              GNUNET_STRINGS_string_to_data (im + 1,
+                                             strlen (im) - 2,
+                                             &bc->old_backup_hash,
+                                             sizeof (bc->old_backup_hash))) )
+        {
+          GNUNET_break_op (0);
+          return TALER_MHD_reply_with_error (connection,
+                                             MHD_HTTP_BAD_REQUEST,
+                                             TALER_EC_SYNC_BAD_IF_MATCH,
+                                             NULL);
+        }
       }
     }
     {
@@ -811,9 +816,12 @@ SH_backup_post (struct MHD_Connection *connection,
                                           MHD_HEADER_KIND,
                                           MHD_HTTP_HEADER_IF_NONE_MATCH);
       if ( (NULL == etag) ||
+           (2 >= strlen (etag)) ||
+           ('"' != etag[0]) ||
+           ('"' != etag[strlen (etag) - 1]) ||
            (GNUNET_OK !=
-            GNUNET_STRINGS_string_to_data (etag,
-                                           strlen (etag),
+            GNUNET_STRINGS_string_to_data (etag + 1,
+                                           strlen (etag) - 2,
                                            &bc->new_backup_hash,
                                            sizeof (bc->new_backup_hash))) )
       {

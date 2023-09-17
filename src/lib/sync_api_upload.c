@@ -292,7 +292,7 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
     val = GNUNET_STRINGS_data_to_string_alloc (&usp.new_backup_hash,
                                                sizeof (struct GNUNET_HashCode));
     GNUNET_asprintf (&hdr,
-                     "%s: %s",
+                     "%s: \"%s\"",
                      MHD_HTTP_HEADER_IF_NONE_MATCH,
                      val);
     GNUNET_free (val);
@@ -314,7 +314,7 @@ SYNC_upload (struct GNUNET_CURL_Context *ctx,
                                                  sizeof (struct
                                                          GNUNET_HashCode));
       GNUNET_asprintf (&hdr,
-                       "If-Match: %s",
+                       "If-Match: \"%s\"",
                        val);
       GNUNET_free (val);
       ext = curl_slist_append (job_headers,

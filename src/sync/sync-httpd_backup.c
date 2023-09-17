@@ -94,13 +94,16 @@ SH_backup_get (struct MHD_Connection *connection,
       inm = MHD_lookup_connection_value (connection,
                                          MHD_HEADER_KIND,
                                          MHD_HTTP_HEADER_IF_NONE_MATCH);
-      if (NULL != inm)
+      if ( (NULL != inm) &&
+           (2 < strlen (inm)) &&
+           ('"' == inm[0]) &&
+           ('=' == inm[strlen (inm) - 1]) )
       {
         struct GNUNET_HashCode inm_h;
 
         if (GNUNET_OK !=
-            GNUNET_STRINGS_string_to_data (inm,
-                                           strlen (inm),
+            GNUNET_STRINGS_string_to_data (inm + 1,
+                                           strlen (inm) - 2,
                                            &inm_h,
                                            sizeof (inm_h)))
         {
@@ -221,6 +224,7 @@ SH_return_backup (struct MHD_Connection *connection,
     char *sig_s;
     char *prev_s;
     char *etag;
+    char *etagq;
 
     sig_s = GNUNET_STRINGS_data_to_string_alloc (&account_sig,
                                                  sizeof (account_sig));
@@ -236,10 +240,14 @@ SH_return_backup (struct MHD_Connection *connection,
                   MHD_add_response_header (resp,
                                            "Sync-Previous",
                                            prev_s));
+    GNUNET_asprintf (&etagq,
+                     "\"%s\"",
+                     etag);
     GNUNET_break (MHD_YES ==
                   MHD_add_response_header (resp,
                                            MHD_HTTP_HEADER_ETAG,
-                                           etag));
+                                           etagq));
+    GNUNET_free (etagq);
     GNUNET_free (etag);
     GNUNET_free (prev_s);
     GNUNET_free (sig_s);

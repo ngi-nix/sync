@@ -140,6 +140,7 @@ backup_upload_cb (void *cls,
     TALER_TESTING_unexpected_status (bus->is,
                                      ud->http_status,
                                      bus->http_status);
+    return;
   }
   switch (ud->us)
   {
