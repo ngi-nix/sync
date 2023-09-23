@@ -1,3 +1,9 @@
+sync (0.9.3-1) unstable; urgency=low
+
+  * Actual v0.9.3 release.
+
+ -- Christian Grothoff <grothoff@gnu.org>  Wed, 27 Sep 2023 03:50:12 +0200
+
 sync (0.9.3) unstable; urgency=low
 
   * First work towards packaging v0.9.3.
