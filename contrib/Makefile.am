@@ -6,6 +6,7 @@ bin_SCRIPTS = \
   sync-dbconfig
 
 EXTRA_DIST = \
+  $(bin_SCRIPTS) \
   gnunet.tag \
   uncrustify.cfg \
-  uncrustify_precomit
+  uncrustify_precommit
