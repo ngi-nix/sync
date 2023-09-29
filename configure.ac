@@ -101,7 +101,7 @@ AS_IF([test $libgnunetutil != 1],
 
 
 # test for postgres
-AX_LIB_POSTGRESQL([9.3])
+AX_LIB_POSTGRESQL([15])
 AS_IF([test "x$found_postgresql" = "xyes"],[postgres=true])
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
