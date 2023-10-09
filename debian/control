@@ -11,7 +11,7 @@ Build-Depends:
  libgnunet-dev (>=0.20),
  libtalerexchange-dev (>= 0.9.3),
  libtalermerchant-dev (>= 0.9.3),
- libpq-dev (>=15.0),
+ libpq-dev (>=14.0),
  pkg-config,
  po-debconf,
  zlib1g-dev,
@@ -51,7 +51,7 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends}
 Recommends:
- postgresql (>=15.0),
+ postgresql (>=14.0),
  apache2 | nginx | httpd
 Description: GNU Taler's encrypted backup store.
  .
